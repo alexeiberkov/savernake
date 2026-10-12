@@ -113,6 +113,18 @@ export type ConflictPending = {
   animalInstanceIds: string[];
 };
 
+/** Deck/supply sizes only — never full draw piles (too large / spoilers). */
+export type MatchDeckSizes = {
+  pathDeck: number;
+  animalDeck: number;
+  discard: number;
+  /** Remaining water droplets in supply (caves unlimited). */
+  waterSupply: number;
+  /** Top of each pile when present (optional debug hint). */
+  pathDeckTop: string | null;
+  animalDeckTop: string | null;
+};
+
 export type MatchState = {
   phase: Phase;
   seed: string;
@@ -127,6 +139,8 @@ export type MatchState = {
   conflicts: ConflictPending[];
   winnerPlayerId?: string;
   strictPathExclusiveDuringPlace: boolean;
+  /** Sizes (+ optional tops) for defect reproduction; not full decks. */
+  deckSizes: MatchDeckSizes;
 };
 
 export type AutoPlayNotice = {

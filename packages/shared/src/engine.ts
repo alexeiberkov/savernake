@@ -18,7 +18,7 @@ import type {
 
 const ADVISOR_ORDER: AdvisorSlot[] = ["rooster", "armadillo", "goat", "rabbit"];
 
-export type InternalMatch = MatchState & {
+export type InternalMatch = Omit<MatchState, "deckSizes"> & {
   pathDeck: string[];
   animalDeck: string[];
   discard: string[];
@@ -85,14 +85,24 @@ export function createLobbyMatch(seed: string): InternalMatch {
 
 export function toPublicMatch(match: InternalMatch): MatchState {
   const {
-    pathDeck: _p,
-    animalDeck: _a,
-    discard: _d,
+    pathDeck,
+    animalDeck,
+    discard,
     lairSupply: _l,
-    waterSupply: _w,
+    waterSupply,
     ...pub
   } = match;
-  return pub;
+  return {
+    ...pub,
+    deckSizes: {
+      pathDeck: pathDeck.length,
+      animalDeck: animalDeck.length,
+      discard: discard.length,
+      waterSupply,
+      pathDeckTop: pathDeck[0] ?? null,
+      animalDeckTop: animalDeck[0] ?? null,
+    },
+  };
 }
 
 function drawFrom(

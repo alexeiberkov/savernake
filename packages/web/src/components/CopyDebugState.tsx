@@ -84,6 +84,7 @@ function buildDebugPayload(props: Props) {
       pendingAdvisor: match.pendingAdvisor,
       conflicts: match.conflicts,
       market: match.market,
+      deckSizes: match.deckSizes,
     },
     local: {
       player: you
@@ -97,6 +98,7 @@ function buildDebugPayload(props: Props) {
       selectedCardId: selectedMarket?.cardId ?? null,
       selectedKind: selectedMarket?.kind ?? null,
       rotation: props.rotation,
+      pendingHelper: match.pendingAdvisor,
       waterAnimalId: props.waterAnimalId,
       pendingProductFoods: waterTarget ? openWaterFoods(waterTarget) : null,
       legalCells: props.legal,
