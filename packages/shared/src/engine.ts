@@ -144,6 +144,17 @@ export function refillMarket(match: InternalMatch): InternalMatch {
   };
 }
 
+/** Count water tokens already placed on a player's animals (max 1 allowed). */
+export function playerWaterCount(player: { forest: PlacedCard[] }): number {
+  let n = 0;
+  for (const card of player.forest) {
+    for (const v of Object.values(card.waterBonus)) {
+      if ((v ?? 0) > 0) n += 1;
+    }
+  }
+  return n;
+}
+
 function advanceTurn(match: InternalMatch): InternalMatch {
   const n = match.players.length;
   if (match.actedSeatsThisRound.length >= n) {
@@ -393,7 +404,9 @@ export class GameEngine {
       };
     }
     if (intent.slot === "goat") {
-      if (next.waterSupply <= 0) {
+      const updatedPlayer = next.players.find((p) => p.id === playerId)!;
+      // Fan rule: at most 1 water token per player for the whole game.
+      if (next.waterSupply <= 0 || playerWaterCount(updatedPlayer) >= 1) {
         return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
       }
       return {
@@ -469,15 +482,20 @@ export class GameEngine {
     if (!player) {
       return { ok: false, error: "INVALID_TARGET", message: "No player" };
     }
+    if (playerWaterCount(player) >= 1) {
+      return {
+        ok: false,
+        error: "INVALID_TARGET",
+        message: "Player already placed their one water token",
+      };
+    }
     const target = player.forest.find(
       (c) => c.instanceId === animalInstanceId && c.kind === "animal",
     );
     if (!target) {
       return { ok: false, error: "INVALID_TARGET", message: "Need an animal" };
     }
-    if ((target.waterBonus[food] ?? 0) >= 1) {
-      return { ok: false, error: "INVALID_TARGET", message: "Food already has water" };
-    }
+    // Water on a printed 0-value food still grants +1 (locked product rule).
 
     const players = match.players.map((p) =>
       p.id === playerId
@@ -487,7 +505,7 @@ export class GameEngine {
               c.instanceId === animalInstanceId
                 ? {
                     ...c,
-                    waterBonus: { ...c.waterBonus, [food]: 1 },
+                    waterBonus: { [food]: 1 },
                   }
                 : c,
             ),

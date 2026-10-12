@@ -316,6 +316,9 @@ export function RoomPage() {
                       : t("waitingTurn")}
                 </motion.p>
               </AnimatePresence>
+              {pendingMine?.kind === "water" ? (
+                <p className="muted">{t("waterZeroHint")}</p>
+              ) : null}
 
               <h2>{t("market")}</h2>
               <MarketRow

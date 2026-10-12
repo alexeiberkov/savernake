@@ -7,7 +7,7 @@ import {
 } from "./engine.js";
 import { legalCells, validatePlacement } from "./placement.js";
 import { findMultiAnimalPaths } from "./path-graph.js";
-import { scorePlayerForest } from "./scoring.js";
+import { scoreAnimal, scorePlayerForest } from "./scoring.js";
 import type { PlayerPublic, PlacedCard } from "./types.js";
 
 function lobbyPlayer(id: string, seat: number, host = false): PlayerPublic {
@@ -198,6 +198,43 @@ describe("pickAndPlace + advisors", () => {
       .forest.find((c) => c.instanceId === animalId)!;
     assert.equal(animal.waterBonus.egg, 1);
   });
+
+  it("rejects a second water for the same player", () => {
+    let state = startTwoPlayer("seed-water-once");
+    const actor = state.players.find((p) => p.seat === state.turnSeat)!;
+    const animalId = actor.forest[0]!.instanceId;
+    // Pre-place the player's single water token
+    state = {
+      ...state,
+      players: state.players.map((p) =>
+        p.id === actor.id
+          ? {
+              ...p,
+              forest: p.forest.map((c) =>
+                c.instanceId === animalId
+                  ? { ...c, waterBonus: { berry: 1 } }
+                  : c,
+              ),
+            }
+          : p,
+      ),
+    };
+    const cell = legalCells(
+      state.players.find((p) => p.id === actor.id)!.forest,
+      { strictPathExclusiveDuringPlace: false, placingAnimal: false },
+    )[0]!;
+    const pick = GameEngine.pickAndPlace(state, actor.id, {
+      type: "pickAndPlace",
+      slot: "goat",
+      cell,
+      rotation: 0,
+    });
+    assert.equal(pick.ok, true);
+    if (!pick.ok) return;
+    // Already has water → skip pending advisor
+    assert.equal(pick.state.pendingAdvisor, null);
+    assert.ok(pick.state.actedSeatsThisRound.includes(actor.seat));
+  });
 });
 
 describe("path conflicts + scoring", () => {
@@ -259,6 +296,31 @@ describe("path conflicts + scoring", () => {
     assert.equal(kept.length, 1);
     assert.equal(kept[0]!.instanceId, "a1");
     assert.ok(typeof resolved.state.players[0]!.score === "number");
+  });
+
+  it("water on printed 0-value food still scores +1", () => {
+    // animal_01: egg printed 0, pathStart N. path_12: S+E + egg food.
+    const animal: PlacedCard = {
+      instanceId: "a",
+      cardId: "animal_01",
+      kind: "animal",
+      rotation: 0,
+      cell: { r: 1, c: 1 },
+      lairTokens: 0,
+      waterBonus: { egg: 1 },
+    };
+    const path: PlacedCard = {
+      instanceId: "p",
+      cardId: "path_12",
+      kind: "path",
+      rotation: 0,
+      cell: { r: 0, c: 1 },
+      lairTokens: 0,
+      waterBonus: {},
+    };
+    const scored = scoreAnimal(animal, [animal, path]);
+    assert.deepEqual(scored.stored, ["egg"]);
+    assert.equal(scored.foodPoints, 1, "0 printed + water bonus = 1");
   });
 
   it("scores forest and finishes when forced full", () => {
