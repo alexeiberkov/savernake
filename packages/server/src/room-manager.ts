@@ -1,8 +1,10 @@
 import { customAlphabet } from "nanoid";
 import {
+  ClientIntentSchema,
   GameEngine,
   createLobbyMatch,
   toPublicMatch,
+  type ClientIntent,
   type InternalMatch,
   type MatchState,
   type PlayerPublic,
@@ -158,6 +160,27 @@ export class RoomManager {
     if (!room) return { ok: false, error: "ROOM_NOT_FOUND" };
     if (room.hostId !== playerId) return { ok: false, error: "NOT_HOST" };
     const result = GameEngine.startGame(room.match);
+    if (!result.ok) return { ok: false, error: result.error };
+    room.match = result.state;
+    return { ok: true, room, match: toPublicMatch(room.match) };
+  }
+
+  applyIntent(
+    code: string,
+    playerId: string,
+    raw: unknown,
+  ):
+    | { ok: true; room: Room; match: MatchState }
+    | { ok: false; error: string } {
+    const room = this.rooms.get(code.toUpperCase());
+    if (!room) return { ok: false, error: "ROOM_NOT_FOUND" };
+    const parsed = ClientIntentSchema.safeParse(raw);
+    if (!parsed.success) return { ok: false, error: "INVALID_INTENT" };
+    const intent = parsed.data as ClientIntent;
+    if (intent.type === "startGame") {
+      return this.startGame(code, playerId);
+    }
+    const result = GameEngine.applyIntent(room.match, playerId, intent);
     if (!result.ok) return { ok: false, error: result.error };
     room.match = result.state;
     return { ok: true, room, match: toPublicMatch(room.match) };

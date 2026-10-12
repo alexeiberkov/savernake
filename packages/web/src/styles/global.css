@@ -244,6 +244,25 @@ input {
   padding: 0.4rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+  cursor: default;
+  width: 100%;
+}
+
+button.market-slot,
+button.forest-cell {
+  font: inherit;
+  color: inherit;
+}
+
+button.market-slot:not(:disabled),
+button.forest-cell.legal,
+button.forest-cell.targetable {
+  cursor: pointer;
+}
+
+button.market-slot:disabled:not(.filled),
+button.forest-cell:disabled:not(.filled):not(.legal) {
+  opacity: 0.85;
 }
 
 .market-slot.filled,
@@ -254,6 +273,42 @@ input {
     linear-gradient(145deg, rgba(90, 120, 80, 0.55), rgba(50, 70, 55, 0.7));
   color: var(--text);
   font-weight: 600;
+}
+
+.market-slot.selected {
+  outline: 2px solid var(--amber-bright);
+  outline-offset: 2px;
+}
+
+.forest-cell.legal {
+  border-style: solid;
+  border-color: var(--amber-bright);
+  background: rgba(212, 161, 90, 0.18);
+  color: var(--amber-bright);
+}
+
+.forest-cell.targetable {
+  border-color: var(--moss);
+}
+
+.food-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.btn.tiny {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.65rem;
+}
+
+.conflict-block {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid var(--fog);
+  border-radius: 8px;
 }
 
 .forest-grid {

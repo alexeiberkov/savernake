@@ -99,6 +99,28 @@ io.on("connection", (socket) => {
     },
   );
 
+  socket.on(
+    "game:intent",
+    (
+      payload: unknown,
+      ack?: (r: { ok: boolean; error?: string }) => void,
+    ) => {
+      const code = socket.data.roomCode as string | undefined;
+      const playerId = socket.data.playerId as string | undefined;
+      if (!code || !playerId) {
+        ack?.({ ok: false, error: "NOT_IN_ROOM" });
+        return;
+      }
+      const result = rooms.applyIntent(code, playerId, payload);
+      if (!result.ok) {
+        ack?.({ ok: false, error: result.error });
+        return;
+      }
+      io.to(code).emit("room:update", rooms.snapshot(result.room, null));
+      ack?.({ ok: true });
+    },
+  );
+
   socket.on("disconnect", () => {
     const room = rooms.markDisconnected(socket.id);
     if (room) {

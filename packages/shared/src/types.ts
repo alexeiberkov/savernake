@@ -39,7 +39,6 @@ export type CardKind = "path" | "animal";
 export type PathCardDef = {
   id: string;
   kind: "path";
-  /** Edges with open trail (before rotation). */
   connections: Edge[];
   foods: Food[];
 };
@@ -64,7 +63,6 @@ export type PlacedCard = {
   rotation: Rotation;
   cell: Cell;
   lairTokens: number;
-  /** At most one water bonus per food type. */
   waterBonus: Partial<Record<Food, number>>;
 };
 
@@ -85,6 +83,16 @@ export type MarketSlot = {
   kind: CardKind | null;
 };
 
+export type PendingAdvisor =
+  | { kind: "lair"; playerId: string }
+  | { kind: "water"; playerId: string };
+
+export type ConflictPending = {
+  playerId: string;
+  pathKey: string;
+  animalInstanceIds: string[];
+};
+
 export type MatchState = {
   phase: Phase;
   seed: string;
@@ -93,9 +101,11 @@ export type MatchState = {
   firstPlayerSeat: number;
   market: MarketSlot[];
   players: PlayerPublic[];
-  /** Empty until scoring. */
+  /** Seats that already took a card this round. */
+  actedSeatsThisRound: number[];
+  pendingAdvisor: PendingAdvisor | null;
+  conflicts: ConflictPending[];
   winnerPlayerId?: string;
-  /** Engine option: forbid 2 animals on one path during place (EN-style). */
   strictPathExclusiveDuringPlace: boolean;
 };
 
@@ -114,7 +124,10 @@ export const ClientIntentSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("pickAndPlace"),
     slot: AdvisorSlotSchema,
-    cell: z.object({ r: z.number().int().min(0).max(3), c: z.number().int().min(0).max(3) }),
+    cell: z.object({
+      r: z.number().int().min(0).max(3),
+      c: z.number().int().min(0).max(3),
+    }),
     rotation: RotationSchema,
   }),
   z.object({
@@ -145,6 +158,7 @@ export type EngineErrorCode =
   | "ILLEGAL_PLACE"
   | "OUT_OF_BOUNDS"
   | "INVALID_TARGET"
+  | "ADVISOR_PENDING"
   | "UNKNOWN_ACTION";
 
 export type EngineResult<T> =

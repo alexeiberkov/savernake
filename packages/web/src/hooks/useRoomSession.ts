@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { io, type Socket } from "socket.io-client";
-import type { RoomSnapshot } from "@savernake/shared";
+import type { ClientIntent, RoomSnapshot } from "@savernake/shared";
 
 const tokenKey = (code: string) => `savernake.resume.${code.toUpperCase()}`;
 
@@ -56,12 +56,26 @@ export function useRoomSession(code: string | undefined) {
     });
   }, [socket]);
 
+  const sendIntent = useCallback(
+    (intent: ClientIntent) => {
+      socket?.emit(
+        "game:intent",
+        intent,
+        (res: { ok: boolean; error?: string }) => {
+          if (!res.ok) setError(res.error ?? "INTENT_FAILED");
+          else setError(null);
+        },
+      );
+    },
+    [socket],
+  );
+
   const you = useMemo(() => {
     if (!snapshot?.youPlayerId) return null;
     return snapshot.match.players.find((p) => p.id === snapshot.youPlayerId) ?? null;
   }, [snapshot]);
 
-  return { snapshot, error, startGame, you, setSnapshot };
+  return { snapshot, error, startGame, sendIntent, you, setSnapshot };
 }
 
 export async function createRoomApi(name: string) {

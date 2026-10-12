@@ -1,11 +1,16 @@
+import { cardDefById, PLACEHOLDER_ANIMALS, PLACEHOLDER_PATHS } from "./placeholder-cards.js";
+import { findMultiAnimalPaths } from "./path-graph.js";
+import { validatePlacement } from "./placement.js";
+import { pickWinner, scorePlayerForest } from "./scoring.js";
 import type {
   AdvisorSlot,
+  ClientIntent,
   EngineResult,
   MatchState,
   MarketSlot,
   Phase,
+  PlacedCard,
 } from "./types.js";
-import { PLACEHOLDER_ANIMALS, PLACEHOLDER_PATHS } from "./placeholder-cards.js";
 
 const ADVISOR_ORDER: AdvisorSlot[] = ["rooster", "armadillo", "goat", "rabbit"];
 
@@ -39,7 +44,7 @@ export function shuffleInPlace<T>(arr: T[], seed: string): T[] {
   const rand = mulberry32(hashSeed(seed));
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [arr[i], arr[j]] = [arr[j]!, arr[i]!];
   }
   return arr;
 }
@@ -61,6 +66,9 @@ export function createLobbyMatch(seed: string): InternalMatch {
     firstPlayerSeat: 0,
     market: emptyMarket(),
     players: [],
+    actedSeatsThisRound: [],
+    pendingAdvisor: null,
+    conflicts: [],
     strictPathExclusiveDuringPlace: false,
     pathDeck: [],
     animalDeck: [],
@@ -82,10 +90,150 @@ export function toPublicMatch(match: InternalMatch): MatchState {
   return pub;
 }
 
-/**
- * Pure engine stub: lobby → dealing → empty turn table with refilled market.
- * Full pick/place/score logic lands in later turns.
- */
+function drawFrom(
+  deck: string[],
+  discard: string[],
+  seed: string,
+  tag: string,
+): { cardId: string | null; deck: string[]; discard: string[] } {
+  let d = [...deck];
+  let disc = [...discard];
+  if (!d.length && disc.length) {
+    d = shuffleInPlace(disc, `${seed}:reshuffle:${tag}`);
+    disc = [];
+  }
+  const cardId = d.shift() ?? null;
+  return { cardId, deck: d, discard: disc };
+}
+
+export function refillMarket(match: InternalMatch): InternalMatch {
+  let pathDeck = [...match.pathDeck];
+  let animalDeck = [...match.animalDeck];
+  let discard = [...match.discard];
+
+  const market: MarketSlot[] = ADVISOR_ORDER.map((slot) => {
+    if (slot === "rabbit") {
+      const drawn = drawFrom(animalDeck, discard, match.seed, `animal-${match.round}`);
+      animalDeck = drawn.deck;
+      discard = drawn.discard;
+      return {
+        slot,
+        cardId: drawn.cardId,
+        kind: drawn.cardId ? ("animal" as const) : null,
+      };
+    }
+    const drawn = drawFrom(pathDeck, discard, match.seed, `path-${match.round}-${slot}`);
+    pathDeck = drawn.deck;
+    discard = drawn.discard;
+    return {
+      slot,
+      cardId: drawn.cardId,
+      kind: drawn.cardId ? ("path" as const) : null,
+    };
+  });
+
+  return {
+    ...match,
+    market,
+    pathDeck,
+    animalDeck,
+    discard,
+    phase: "roundRefill",
+    actedSeatsThisRound: [],
+    pendingAdvisor: null,
+  };
+}
+
+function advanceTurn(match: InternalMatch): InternalMatch {
+  const n = match.players.length;
+  if (match.actedSeatsThisRound.length >= n) {
+    return endRound(match);
+  }
+  let seat = match.turnSeat;
+  for (let i = 0; i < n; i++) {
+    seat = (seat + 1) % n;
+    if (!match.actedSeatsThisRound.includes(seat)) {
+      return { ...match, turnSeat: seat, phase: "turn", pendingAdvisor: null };
+    }
+  }
+  return endRound(match);
+}
+
+function endRound(match: InternalMatch): InternalMatch {
+  if (match.players.every((p) => p.cardCount >= 16)) {
+    return beginConflictOrScore(match);
+  }
+
+  let next: InternalMatch = {
+    ...match,
+    phase: "betweenRounds",
+    discard: [
+      ...match.discard,
+      ...match.market.filter((m) => m.cardId).map((m) => m.cardId!),
+    ],
+    market: emptyMarket(),
+  };
+
+  next = {
+    ...next,
+    round: next.round + 1,
+  };
+  next = refillMarket(next);
+  next = {
+    ...next,
+    turnSeat: next.firstPlayerSeat,
+    phase: "turn",
+    actedSeatsThisRound: [],
+    pendingAdvisor: null,
+  };
+  return next;
+}
+
+function beginConflictOrScore(match: InternalMatch): InternalMatch {
+  const conflicts = match.players.flatMap((p) =>
+    findMultiAnimalPaths(p.forest).map((c) => ({
+      playerId: p.id,
+      pathKey: `${p.id}:${c.pathKey}`,
+      animalInstanceIds: c.animalInstanceIds,
+    })),
+  );
+
+  if (conflicts.length) {
+    return { ...match, phase: "conflictResolve", conflicts, pendingAdvisor: null };
+  }
+  return finalizeScores(match);
+}
+
+function finalizeScores(match: InternalMatch): InternalMatch {
+  const players = match.players.map((p) => {
+    const { total } = scorePlayerForest(p.forest);
+    const roosterBonus = p.seat === match.firstPlayerSeat ? 1 : 0;
+    return { ...p, score: total + roosterBonus };
+  });
+  const winnerPlayerId = pickWinner(players, match.firstPlayerSeat);
+  return {
+    ...match,
+    phase: "finished",
+    players,
+    winnerPlayerId,
+    conflicts: [],
+    pendingAdvisor: null,
+  };
+}
+
+function finishTurnAfterAdvisor(match: InternalMatch, seat: number): InternalMatch {
+  const acted = [...new Set([...match.actedSeatsThisRound, seat])];
+  let next: InternalMatch = {
+    ...match,
+    actedSeatsThisRound: acted,
+    pendingAdvisor: null,
+  };
+  if (acted.length >= next.players.length) {
+    return endRound(next);
+  }
+  return advanceTurn(next);
+}
+
 export class GameEngine {
   static startGame(match: InternalMatch): EngineResult<InternalMatch> {
     if (match.phase !== "lobby") {
@@ -144,14 +292,301 @@ export class GameEngine {
       firstPlayerSeat,
       turnSeat: firstPlayerSeat,
       round: 1,
+      actedSeatsThisRound: [],
+      pendingAdvisor: null,
+      conflicts: [],
     };
 
     next = refillMarket(next);
-    next = { ...next, phase: "turn" };
+    next = { ...next, phase: "turn", turnSeat: firstPlayerSeat };
     return { ok: true, state: next };
   }
 
-  /** No-op stub for future actions — keeps API stable. */
+  static pickAndPlace(
+    match: InternalMatch,
+    playerId: string,
+    intent: Extract<ClientIntent, { type: "pickAndPlace" }>,
+  ): EngineResult<InternalMatch> {
+    if (match.phase !== "turn") {
+      return { ok: false, error: "WRONG_PHASE", message: "Not in turn phase" };
+    }
+    if (match.pendingAdvisor) {
+      return { ok: false, error: "ADVISOR_PENDING", message: "Resolve advisor first" };
+    }
+
+    const player = match.players.find((p) => p.id === playerId);
+    if (!player) {
+      return { ok: false, error: "NOT_YOUR_TURN", message: "Unknown player" };
+    }
+    if (player.seat !== match.turnSeat) {
+      return { ok: false, error: "NOT_YOUR_TURN", message: "Not your turn" };
+    }
+    if (match.actedSeatsThisRound.includes(player.seat)) {
+      return { ok: false, error: "NOT_YOUR_TURN", message: "Already acted this round" };
+    }
+
+    const marketSlot = match.market.find((m) => m.slot === intent.slot);
+    if (!marketSlot?.cardId || !marketSlot.kind) {
+      return { ok: false, error: "SLOT_EMPTY", message: "Slot empty" };
+    }
+
+    const placeErr = validatePlacement(player.forest, intent.cell, {
+      strictPathExclusiveDuringPlace: match.strictPathExclusiveDuringPlace,
+      placingAnimal: marketSlot.kind === "animal",
+    });
+    if (placeErr === "OUT_OF_BOUNDS") {
+      return { ok: false, error: "OUT_OF_BOUNDS", message: "Outside 4×4" };
+    }
+    if (placeErr) {
+      return { ok: false, error: "ILLEGAL_PLACE", message: "Illegal placement" };
+    }
+
+    const placed: PlacedCard = {
+      instanceId: `${playerId}:${marketSlot.cardId}:${player.cardCount}`,
+      cardId: marketSlot.cardId,
+      kind: marketSlot.kind,
+      rotation: intent.rotation,
+      cell: intent.cell,
+      lairTokens: 0,
+      waterBonus: {},
+    };
+
+    const players = match.players.map((p) =>
+      p.id === playerId
+        ? {
+            ...p,
+            forest: [...p.forest, placed],
+            cardCount: p.cardCount + 1,
+          }
+        : p,
+    );
+
+    const market = match.market.map((m) =>
+      m.slot === intent.slot ? { ...m, cardId: null, kind: null } : m,
+    );
+
+    let next: InternalMatch = {
+      ...match,
+      players,
+      market,
+    };
+
+    // Advisor hooks
+    if (intent.slot === "rooster") {
+      next = { ...next, firstPlayerSeat: player.seat };
+      return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+    }
+    if (intent.slot === "rabbit") {
+      return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+    }
+    if (intent.slot === "armadillo") {
+      if (next.lairSupply <= 0) {
+        return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+      }
+      return {
+        ok: true,
+        state: {
+          ...next,
+          pendingAdvisor: { kind: "lair", playerId },
+          phase: "turn",
+        },
+      };
+    }
+    if (intent.slot === "goat") {
+      if (next.waterSupply <= 0) {
+        return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+      }
+      return {
+        ok: true,
+        state: {
+          ...next,
+          pendingAdvisor: { kind: "water", playerId },
+          phase: "turn",
+        },
+      };
+    }
+
+    return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+  }
+
+  static advisorPlaceLair(
+    match: InternalMatch,
+    playerId: string,
+    animalInstanceId: string,
+  ): EngineResult<InternalMatch> {
+    if (match.phase !== "turn" || match.pendingAdvisor?.kind !== "lair") {
+      return { ok: false, error: "WRONG_PHASE", message: "No lair pending" };
+    }
+    if (match.pendingAdvisor.playerId !== playerId) {
+      return { ok: false, error: "NOT_YOUR_TURN", message: "Not your advisor" };
+    }
+    const player = match.players.find((p) => p.id === playerId);
+    if (!player) {
+      return { ok: false, error: "INVALID_TARGET", message: "No player" };
+    }
+    const target = player.forest.find(
+      (c) => c.instanceId === animalInstanceId && c.kind === "animal",
+    );
+    if (!target) {
+      return { ok: false, error: "INVALID_TARGET", message: "Need an animal" };
+    }
+
+    const players = match.players.map((p) =>
+      p.id === playerId
+        ? {
+            ...p,
+            forest: p.forest.map((c) =>
+              c.instanceId === animalInstanceId
+                ? { ...c, lairTokens: c.lairTokens + 1 }
+                : c,
+            ),
+          }
+        : p,
+    );
+
+    const next: InternalMatch = {
+      ...match,
+      players,
+      lairSupply: Math.max(0, match.lairSupply - 1),
+      pendingAdvisor: null,
+    };
+    return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+  }
+
+  static advisorPlaceWater(
+    match: InternalMatch,
+    playerId: string,
+    animalInstanceId: string,
+    food: import("./types.js").Food,
+  ): EngineResult<InternalMatch> {
+    if (match.phase !== "turn" || match.pendingAdvisor?.kind !== "water") {
+      return { ok: false, error: "WRONG_PHASE", message: "No water pending" };
+    }
+    if (match.pendingAdvisor.playerId !== playerId) {
+      return { ok: false, error: "NOT_YOUR_TURN", message: "Not your advisor" };
+    }
+    const player = match.players.find((p) => p.id === playerId);
+    if (!player) {
+      return { ok: false, error: "INVALID_TARGET", message: "No player" };
+    }
+    const target = player.forest.find(
+      (c) => c.instanceId === animalInstanceId && c.kind === "animal",
+    );
+    if (!target) {
+      return { ok: false, error: "INVALID_TARGET", message: "Need an animal" };
+    }
+    if ((target.waterBonus[food] ?? 0) >= 1) {
+      return { ok: false, error: "INVALID_TARGET", message: "Food already has water" };
+    }
+
+    const players = match.players.map((p) =>
+      p.id === playerId
+        ? {
+            ...p,
+            forest: p.forest.map((c) =>
+              c.instanceId === animalInstanceId
+                ? {
+                    ...c,
+                    waterBonus: { ...c.waterBonus, [food]: 1 },
+                  }
+                : c,
+            ),
+          }
+        : p,
+    );
+
+    const next: InternalMatch = {
+      ...match,
+      players,
+      waterSupply: Math.max(0, match.waterSupply - 1),
+      pendingAdvisor: null,
+    };
+    return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+  }
+
+  static resolveConflict(
+    match: InternalMatch,
+    playerId: string,
+    pathKey: string,
+    keepAnimalInstanceId: string,
+  ): EngineResult<InternalMatch> {
+    if (match.phase !== "conflictResolve") {
+      return { ok: false, error: "WRONG_PHASE", message: "Not resolving conflicts" };
+    }
+    const conflict = match.conflicts.find(
+      (c) => c.playerId === playerId && c.pathKey === pathKey,
+    );
+    if (!conflict) {
+      return { ok: false, error: "INVALID_TARGET", message: "Unknown conflict" };
+    }
+    if (!conflict.animalInstanceIds.includes(keepAnimalInstanceId)) {
+      return { ok: false, error: "INVALID_TARGET", message: "Keep must be on path" };
+    }
+
+    const drop = new Set(
+      conflict.animalInstanceIds.filter((id) => id !== keepAnimalInstanceId),
+    );
+
+    const players = match.players.map((p) => {
+      if (p.id !== playerId) return p;
+      const forest = p.forest.filter((c) => !drop.has(c.instanceId));
+      return { ...p, forest, cardCount: forest.length };
+    });
+
+    const conflicts = match.conflicts.filter(
+      (c) => !(c.playerId === playerId && c.pathKey === pathKey),
+    );
+
+    let next: InternalMatch = { ...match, players, conflicts };
+    if (!conflicts.length) {
+      next = finalizeScores(next);
+    }
+    return { ok: true, state: next };
+  }
+
+  static applyIntent(
+    match: InternalMatch,
+    playerId: string,
+    intent: ClientIntent,
+  ): EngineResult<InternalMatch> {
+    switch (intent.type) {
+      case "startGame":
+        return GameEngine.startGame(match);
+      case "pickAndPlace":
+        return GameEngine.pickAndPlace(match, playerId, intent);
+      case "advisorPlaceLair":
+        return GameEngine.advisorPlaceLair(match, playerId, intent.animalInstanceId);
+      case "advisorPlaceWater":
+        return GameEngine.advisorPlaceWater(
+          match,
+          playerId,
+          intent.animalInstanceId,
+          intent.food,
+        );
+      case "resolveConflict":
+        return GameEngine.resolveConflict(
+          match,
+          playerId,
+          intent.pathKey,
+          intent.keepAnimalInstanceId,
+        );
+      case "setDisplayName":
+        return {
+          ok: true,
+          state: {
+            ...match,
+            players: match.players.map((p) =>
+              p.id === playerId
+                ? { ...p, name: intent.name.trim().slice(0, 24) || p.name }
+                : p,
+            ),
+          },
+        };
+      default:
+        return { ok: false, error: "UNKNOWN_ACTION", message: "Unknown" };
+    }
+  }
+
   static assertPhase(match: InternalMatch, phase: Phase): EngineResult<InternalMatch> {
     if (match.phase !== phase) {
       return { ok: false, error: "WRONG_PHASE", message: `Expected ${phase}` };
@@ -160,16 +595,14 @@ export class GameEngine {
   }
 }
 
-export function refillMarket(match: InternalMatch): InternalMatch {
-  const pathDeck = [...match.pathDeck];
-  const animalDeck = [...match.animalDeck];
-  const market: MarketSlot[] = ADVISOR_ORDER.map((slot) => {
-    if (slot === "rabbit") {
-      const cardId = animalDeck.shift() ?? null;
-      return { slot, cardId, kind: cardId ? ("animal" as const) : null };
-    }
-    const cardId = pathDeck.shift() ?? null;
-    return { slot, cardId, kind: cardId ? ("path" as const) : null };
-  });
-  return { ...match, market, pathDeck, animalDeck, phase: "roundRefill" };
+/** Test helper: force forests full to exercise end-game. */
+export function __forceCardCount(match: InternalMatch, count: number): InternalMatch {
+  return {
+    ...match,
+    players: match.players.map((p) => ({ ...p, cardCount: count })),
+  };
+}
+
+export function __debugCardDef(id: string) {
+  return cardDefById(id);
 }
