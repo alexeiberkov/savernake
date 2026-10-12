@@ -50,6 +50,8 @@ export type AnimalCardDef = {
   storage: number;
   animalPoints: 1 | 2 | 3;
   pathStart: Edge;
+  /** ASCII slug for `/animals/{slug}.png` art (fan pack). */
+  artSlug?: string;
 };
 
 export type CardDef = PathCardDef | AnimalCardDef;

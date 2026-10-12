@@ -3,8 +3,10 @@ export type Locale = "en" | "ru";
 const en = {
   brand: "Savernake",
   tagline: "Build your autumn forest — draft paths, shelter animals, store food.",
+  disclaimerTitle: "Unofficial fan project",
   disclaimer:
-    "Unofficial non-commercial fan project. Not affiliated with Devir, Hobby World, or the creators of Savernake Forest / «Осенний лес». Placeholders only — no official art.",
+    "Non-commercial fan remake. All rights to Savernake Forest / «Осенний лес» belong to its authors and publishers (Devir, Hobby World). Not affiliated or endorsed. Fan animal art by Aliaksei; path cards remain placeholders — no official art.",
+  artCredit: "Animal illustrations: Aliaksei’s fan pack (used with permission).",
   createRoom: "Create room",
   joinRoom: "Join with code",
   yourName: "Display name",
@@ -77,8 +79,10 @@ export type MessageKey = keyof typeof en;
 const ru: Record<MessageKey, string> = {
   brand: "Savernake",
   tagline: "Соберите осенний лес — берите тропы, селите животных, запасайте еду.",
+  disclaimerTitle: "Неофициальный фанатский проект",
   disclaimer:
-    "Неофициальный некоммерческий фанатский проект. Не связан с Devir, Hobby World и авторами Savernake Forest / «Осенний лес». Только плейсхолдеры — без официального арта.",
+    "Некоммерческий фанатский ремейк. Все права на Savernake Forest / «Осенний лес» принадлежат авторам и издателям (Devir, Hobby World). Не аффилирован и не одобрен. Фанатский арт животных — Алиаксей; карты троп пока заглушки — без официального арта.",
+  artCredit: "Иллюстрации животных: фанатский набор Алиаксея (с разрешения).",
   createRoom: "Создать комнату",
   joinRoom: "Войти по коду",
   yourName: "Имя за столом",

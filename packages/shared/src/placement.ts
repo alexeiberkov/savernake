@@ -33,7 +33,7 @@ export function validatePlacement(
   if (opts.strictPathExclusiveDuringPlace && opts.placingAnimal) {
     const probe: PlacedCard = {
       instanceId: "__probe__",
-      cardId: "animal_01",
+      cardId: "animal_hedgehog",
       kind: "animal",
       rotation: 0,
       cell,

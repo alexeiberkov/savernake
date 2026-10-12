@@ -123,6 +123,34 @@ a {
   color: var(--text-muted);
 }
 
+.disclaimer-banner {
+  margin: 0 0 0.35rem;
+  max-width: 44rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid rgba(232, 192, 122, 0.35);
+  border-radius: 8px;
+  background: rgba(20, 36, 28, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.disclaimer-banner strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--amber-bright);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.disclaimer-credit {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--amber);
+  font-size: 0.82rem;
+}
+
 .disclaimer {
   margin: 0;
   max-width: 40rem;
@@ -353,7 +381,8 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
   border: 1px solid rgba(232, 192, 122, 0.35);
   color: var(--text);
   font-weight: 600;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 0;
 }
 
 .ph-card.animal {
@@ -361,9 +390,113 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
     linear-gradient(145deg, rgba(150, 110, 70, 0.55), rgba(70, 45, 30, 0.85));
 }
 
+.ph-card.has-art {
+  grid-template-rows: 1fr;
+  place-content: stretch;
+  padding: 0;
+  /* Keep overflow visible so the hover popover can escape the card. */
+  overflow: visible;
+  isolation: isolate;
+}
+
 .ph-card.compact {
   min-height: 0;
   aspect-ratio: 1;
+}
+
+.ph-art-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.ph-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ph-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  padding: 0.2rem 0.25rem;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  text-align: center;
+  background: linear-gradient(transparent, rgba(18, 28, 22, 0.92));
+  color: var(--text);
+  font-weight: 600;
+  pointer-events: none;
+  border-radius: 0 0 7px 7px;
+}
+
+.ph-card.compact .ph-name {
+  font-size: 0.55rem;
+  padding: 0.15rem 0.2rem;
+}
+
+.animal-popover {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.4rem);
+  transform: translateX(-50%) translateY(4px);
+  width: min(14rem, 70vw);
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(232, 192, 122, 0.45);
+  background: rgba(18, 30, 24, 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0.16s;
+  z-index: 40;
+}
+
+.animal-popover strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  color: var(--amber-bright);
+  margin-bottom: 0.2rem;
+}
+
+.animal-popover p {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.ph-card:hover .animal-popover,
+.ph-card:focus-within .animal-popover,
+.market-slot:hover .animal-popover,
+.market-slot:focus-visible .animal-popover,
+.forest-cell:hover .animal-popover,
+.forest-cell:focus-visible .animal-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.market-slot-wrap:hover,
+.forest-cell:hover,
+.forest-cell:focus-within {
+  z-index: 5;
 }
 
 .ph-kind {

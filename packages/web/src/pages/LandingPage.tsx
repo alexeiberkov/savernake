@@ -43,6 +43,17 @@ export function LandingPage() {
 
   return (
     <div className="hero">
+      <motion.aside
+        className="disclaimer-banner"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        aria-label={t("disclaimerTitle")}
+      >
+        <strong>{t("disclaimerTitle")}</strong>
+        {t("disclaimer")}
+        <span className="disclaimer-credit">{t("artCredit")}</span>
+      </motion.aside>
       <motion.h1
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -57,14 +68,6 @@ export function LandingPage() {
         transition={{ delay: 0.12, duration: 0.45 }}
       >
         {t("tagline")}
-      </motion.p>
-      <motion.p
-        className="disclaimer"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.28 }}
-      >
-        {t("disclaimer")}
       </motion.p>
 
       <motion.div

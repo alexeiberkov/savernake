@@ -407,6 +407,7 @@ export function RoomPage() {
                         kind={preview.kind}
                         rotation={preview.rotation}
                         compact
+                        showPopover={false}
                       />
                     </motion.div>
                   ) : null}

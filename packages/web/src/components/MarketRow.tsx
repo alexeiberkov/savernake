@@ -1,5 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import type { AdvisorSlot, MarketSlot } from "@savernake/shared";
+import {
+  cardDefById,
+  slugFromAnimalCardId,
+  type AdvisorSlot,
+  type MarketSlot,
+} from "@savernake/shared";
+import { animalMetaBySlug } from "../i18n/animal-meta";
 import { useLocale } from "../i18n/LocaleContext";
 import { PlaceholderCard } from "./PlaceholderCard";
 
@@ -19,11 +25,17 @@ export function MarketRow({
   onSelect,
   dealKey = 0,
 }: Props) {
-  const { t } = useLocale();
+  const { locale, t } = useLocale();
   return (
     <div className="market-row" aria-label={t("market")}>
       {market.map((slot, index) => {
         const canPick = Boolean(selectable && slot.cardId);
+        const def = slot.cardId ? cardDefById(slot.cardId) : undefined;
+        const slug =
+          (def?.kind === "animal" ? def.artSlug : undefined) ??
+          (slot.cardId ? slugFromAnimalCardId(slot.cardId) : null);
+        const animalName = animalMetaBySlug(slug)?.name[locale];
+        const cardLabel = animalName ?? slot.cardId ?? "";
         return (
           <div key={slot.slot} className="market-slot-wrap">
             <span className="slot-label">{slot.slot}</span>
@@ -59,7 +71,7 @@ export function MarketRow({
                   }}
                   whileHover={canPick ? { y: -4 } : undefined}
                   whileTap={canPick ? { scale: 0.96 } : undefined}
-                  aria-label={`${t("drawingCard")} ${slot.cardId}`}
+                  aria-label={`${t("drawingCard")} ${cardLabel}`}
                 >
                   <PlaceholderCard
                     cardId={slot.cardId}

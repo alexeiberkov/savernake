@@ -59,7 +59,7 @@ describe("placement", () => {
     const forest: PlacedCard[] = [
       {
         instanceId: "s",
-        cardId: "animal_01",
+        cardId: "animal_hedgehog",
         kind: "animal",
         rotation: 0,
         cell: { r: 1, c: 1 },
@@ -239,11 +239,11 @@ describe("pickAndPlace + advisors", () => {
 
 describe("path conflicts + scoring", () => {
   it("detects two animals linked by trail and resolves at end", () => {
-    // animal_02 pathStart E; path_02 is E-W; animal_04 pathStart W
+    // animal_badger pathStart E; path_02 is E-W; animal_fox pathStart W
     const forest: PlacedCard[] = [
       {
         instanceId: "a1",
-        cardId: "animal_02",
+        cardId: "animal_badger",
         kind: "animal",
         rotation: 0,
         cell: { r: 1, c: 0 },
@@ -261,7 +261,7 @@ describe("path conflicts + scoring", () => {
       },
       {
         instanceId: "a2",
-        cardId: "animal_04",
+        cardId: "animal_fox",
         kind: "animal",
         rotation: 0,
         cell: { r: 1, c: 2 },
@@ -299,10 +299,10 @@ describe("path conflicts + scoring", () => {
   });
 
   it("water on printed 0-value food still scores +1", () => {
-    // animal_01: egg printed 0, pathStart N. path_12: S+E + egg food.
+    // animal_hedgehog: egg printed 0, pathStart N. path_12: S+E + egg food.
     const animal: PlacedCard = {
       instanceId: "a",
-      cardId: "animal_01",
+      cardId: "animal_hedgehog",
       kind: "animal",
       rotation: 0,
       cell: { r: 1, c: 1 },

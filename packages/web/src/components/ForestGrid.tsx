@@ -178,6 +178,7 @@ export function ForestGrid({
                     kind={preview.kind}
                     rotation={preview.rotation}
                     compact
+                    showPopover={false}
                   />
                 </motion.div>
               ) : (
