@@ -16,13 +16,20 @@ const io = new Server(httpServer, {
 
 const rooms = new RoomManager();
 
+rooms.setTimerBroadcast((room) => {
+  io.to(room.code).emit("room:update", rooms.snapshot(room, null));
+});
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, name: "savernake-server" });
 });
 
 app.post("/api/rooms", (req, res) => {
   const name = String(req.body?.name ?? "Host");
-  const { snapshot, resumeToken } = rooms.createRoom(name);
+  const { snapshot, resumeToken } = rooms.createRoom(
+    name,
+    req.body?.turnTimerSeconds,
+  );
   res.json({ snapshot, resumeToken });
 });
 
@@ -91,11 +98,40 @@ io.on("connection", (socket) => {
         ack?.({ ok: false });
         return;
       }
-      const room = rooms.rename(code, playerId, payload.name);
-      if (room) {
-        io.to(code).emit("room:update", rooms.snapshot(room, null));
+      const room = rooms.get(code);
+      if (!room || room.match.phase !== "lobby") {
+        ack?.({ ok: false });
+        return;
       }
-      ack?.({ ok: Boolean(room) });
+      room.match.players = room.match.players.map((p) =>
+        p.id === playerId
+          ? { ...p, name: String(payload.name).trim().slice(0, 24) || p.name }
+          : p,
+      );
+      io.to(code).emit("room:update", rooms.snapshot(room, null));
+      ack?.({ ok: true });
+    },
+  );
+
+  socket.on(
+    "room:setTimer",
+    (
+      payload: { seconds: number },
+      ack?: (r: { ok: boolean; error?: string }) => void,
+    ) => {
+      const code = socket.data.roomCode as string | undefined;
+      const playerId = socket.data.playerId as string | undefined;
+      if (!code || !playerId) {
+        ack?.({ ok: false, error: "NOT_IN_ROOM" });
+        return;
+      }
+      const result = rooms.setTurnTimer(code, playerId, payload.seconds);
+      if (!result.ok) {
+        ack?.({ ok: false, error: result.error });
+        return;
+      }
+      io.to(code).emit("room:update", rooms.snapshot(result.room, null));
+      ack?.({ ok: true });
     },
   );
 

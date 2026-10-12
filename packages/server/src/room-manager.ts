@@ -2,14 +2,30 @@ import { customAlphabet } from "nanoid";
 import {
   ClientIntentSchema,
   GameEngine,
+  autoPlayCurrentTurn,
   createLobbyMatch,
+  defaultRoomSettings,
+  mulberry32,
+  normalizeTurnTimerSeconds,
   toPublicMatch,
+  type AutoPlayNotice,
   type ClientIntent,
   type InternalMatch,
   type MatchState,
   type PlayerPublic,
+  type RoomSettings,
   type RoomSnapshot,
 } from "@savernake/shared";
+
+// re-export hash helper via local mulberry — engine exports shuffle; use Date seed
+function hashSeed(seed: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 const roomCode = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 6);
 const tokenId = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 24);
@@ -24,19 +40,30 @@ export type Room = {
   code: string;
   createdAt: number;
   hostId: string;
-  sessions: Map<string, SeatSession>; // playerId -> session
-  resumeIndex: Map<string, string>; // resumeToken -> playerId
+  sessions: Map<string, SeatSession>;
+  resumeIndex: Map<string, string>;
   match: InternalMatch;
+  settings: RoomSettings;
+  turnDeadlineMs: number | null;
+  lastAutoPlayNotice: AutoPlayNotice | null;
+  timerHandle: ReturnType<typeof setTimeout> | null;
+  autoPlaySeq: number;
 };
 
-function publicPlayers(room: Room): PlayerPublic[] {
-  return room.match.players;
-}
+export type TimerBroadcast = (room: Room) => void;
 
 export class RoomManager {
   private rooms = new Map<string, Room>();
+  private onTimerFire: TimerBroadcast | null = null;
 
-  createRoom(displayName: string): { room: Room; snapshot: RoomSnapshot; resumeToken: string } {
+  setTimerBroadcast(cb: TimerBroadcast) {
+    this.onTimerFire = cb;
+  }
+
+  createRoom(
+    displayName: string,
+    turnTimerSeconds?: unknown,
+  ): { room: Room; snapshot: RoomSnapshot; resumeToken: string } {
     let code = roomCode();
     while (this.rooms.has(code)) code = roomCode();
 
@@ -58,11 +85,19 @@ export class RoomManager {
       code,
       createdAt: Date.now(),
       hostId: playerId,
-      sessions: new Map([
-        [playerId, { playerId, resumeToken, socketId: null }],
-      ]),
+      sessions: new Map([[playerId, { playerId, resumeToken, socketId: null }]]),
       resumeIndex: new Map([[resumeToken, playerId]]),
       match,
+      settings: {
+        turnTimerSeconds:
+          turnTimerSeconds === undefined
+            ? defaultRoomSettings().turnTimerSeconds
+            : normalizeTurnTimerSeconds(turnTimerSeconds),
+      },
+      turnDeadlineMs: null,
+      lastAutoPlayNotice: null,
+      timerHandle: null,
+      autoPlaySeq: 0,
     };
     this.rooms.set(code, room);
     return {
@@ -126,18 +161,6 @@ export class RoomManager {
     return { ok: true, room, playerId, snapshot: this.snapshot(room, playerId) };
   }
 
-  bindSocket(code: string, playerId: string, socketId: string): Room | null {
-    const room = this.rooms.get(code.toUpperCase());
-    if (!room) return null;
-    const session = room.sessions.get(playerId);
-    if (!session) return null;
-    session.socketId = socketId;
-    room.match.players = room.match.players.map((p) =>
-      p.id === playerId ? { ...p, connected: true } : p,
-    );
-    return room;
-  }
-
   markDisconnected(socketId: string): Room | null {
     for (const room of this.rooms.values()) {
       for (const session of room.sessions.values()) {
@@ -153,7 +176,27 @@ export class RoomManager {
     return null;
   }
 
-  startGame(code: string, playerId: string):
+  setTurnTimer(
+    code: string,
+    playerId: string,
+    seconds: unknown,
+  ):
+    | { ok: true; room: Room }
+    | { ok: false; error: string } {
+    const room = this.rooms.get(code.toUpperCase());
+    if (!room) return { ok: false, error: "ROOM_NOT_FOUND" };
+    if (room.hostId !== playerId) return { ok: false, error: "NOT_HOST" };
+    if (room.match.phase !== "lobby") return { ok: false, error: "GAME_STARTED" };
+    room.settings = {
+      turnTimerSeconds: normalizeTurnTimerSeconds(seconds),
+    };
+    return { ok: true, room };
+  }
+
+  startGame(
+    code: string,
+    playerId: string,
+  ):
     | { ok: true; room: Room; match: MatchState }
     | { ok: false; error: string } {
     const room = this.rooms.get(code.toUpperCase());
@@ -162,6 +205,8 @@ export class RoomManager {
     const result = GameEngine.startGame(room.match);
     if (!result.ok) return { ok: false, error: result.error };
     room.match = result.state;
+    room.lastAutoPlayNotice = null;
+    this.armTurnTimer(room);
     return { ok: true, room, match: toPublicMatch(room.match) };
   }
 
@@ -180,19 +225,94 @@ export class RoomManager {
     if (intent.type === "startGame") {
       return this.startGame(code, playerId);
     }
+    if (intent.type === "setTurnTimer") {
+      const r = this.setTurnTimer(code, playerId, intent.seconds);
+      if (!r.ok) return r;
+      return { ok: true, room: r.room, match: toPublicMatch(r.room.match) };
+    }
+    const beforeSeat = room.match.turnSeat;
+    const beforePhase = room.match.phase;
+    const beforePending = room.match.pendingAdvisor?.kind ?? null;
+    const beforeRound = room.match.round;
     const result = GameEngine.applyIntent(room.match, playerId, intent);
     if (!result.ok) return { ok: false, error: result.error };
     room.match = result.state;
+    const turned =
+      room.match.turnSeat !== beforeSeat ||
+      room.match.phase !== beforePhase ||
+      (room.match.pendingAdvisor?.kind ?? null) !== beforePending ||
+      room.match.round !== beforeRound;
+    if (turned || intent.type === "pickAndPlace" || intent.type.startsWith("advisor")) {
+      this.armTurnTimer(room);
+    }
     return { ok: true, room, match: toPublicMatch(room.match) };
   }
 
-  rename(code: string, playerId: string, name: string): Room | null {
+  /** Called when turn deadline fires (server-authoritative). */
+  fireTurnTimeout(code: string): Room | null {
     const room = this.rooms.get(code.toUpperCase());
-    if (!room || room.match.phase !== "lobby") return null;
-    room.match.players = room.match.players.map((p) =>
-      p.id === playerId ? { ...p, name: name.trim().slice(0, 24) || p.name } : p,
+    if (!room) return null;
+    if (room.match.phase !== "turn") {
+      this.clearTimer(room);
+      room.turnDeadlineMs = null;
+      return room;
+    }
+    if (
+      room.turnDeadlineMs != null &&
+      Date.now() + 50 < room.turnDeadlineMs
+    ) {
+      // Spurious early fire — re-arm
+      this.armTurnTimer(room);
+      return room;
+    }
+
+    const actor = room.match.players.find((p) => p.seat === room.match.turnSeat);
+    room.autoPlaySeq += 1;
+    const rand = mulberry32(
+      hashSeed(
+        `${room.match.seed}:auto:${room.match.round}:${room.match.turnSeat}:${room.autoPlaySeq}`,
+      ),
     );
+    const result = autoPlayCurrentTurn(room.match, rand);
+    if (!result.ok) {
+      // No legal move — clear timer and leave state
+      this.clearTimer(room);
+      room.turnDeadlineMs = null;
+      return room;
+    }
+    room.match = result.state;
+    if (actor) {
+      room.lastAutoPlayNotice = {
+        playerId: actor.id,
+        name: actor.name,
+        atMs: Date.now(),
+      };
+    }
+    this.armTurnTimer(room);
     return room;
+  }
+
+  armTurnTimer(room: Room) {
+    this.clearTimer(room);
+    const secs = room.settings.turnTimerSeconds;
+    if (secs <= 0 || room.match.phase !== "turn") {
+      room.turnDeadlineMs = null;
+      return;
+    }
+    const ms = secs * 1000;
+    room.turnDeadlineMs = Date.now() + ms;
+    const code = room.code;
+    room.timerHandle = setTimeout(() => {
+      const updated = this.fireTurnTimeout(code);
+      if (updated && this.onTimerFire) this.onTimerFire(updated);
+    }, ms);
+  }
+
+  clearTimer(room: Room) {
+    if (room.timerHandle) {
+      clearTimeout(room.timerHandle);
+      room.timerHandle = null;
+    }
   }
 
   get(code: string): Room | undefined {
@@ -207,11 +327,11 @@ export class RoomManager {
       hostId: room.hostId,
       youPlayerId,
       match: toPublicMatch(room.match),
+      settings: { ...room.settings },
+      turnDeadlineMs: room.turnDeadlineMs,
+      lastAutoPlayNotice: room.lastAutoPlayNotice
+        ? { ...room.lastAutoPlayNotice }
+        : null,
     };
-  }
-
-  // silence unused in stub builds
-  debugPlayerCount(room: Room): number {
-    return publicPlayers(room).length;
   }
 }

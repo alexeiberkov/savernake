@@ -123,9 +123,51 @@ export function walkPathComponent(
   return visited;
 }
 
+/** Trail-linked orthogonal neighbors of a card. */
+export function trailNeighbors(
+  card: PlacedCard,
+  map: Map<string, PlacedCard>,
+): PlacedCard[] {
+  const out: PlacedCard[] = [];
+  for (const edge of ["N", "E", "S", "W"] as Edge[]) {
+    const { dr, dc } = EDGE_DELTA[edge];
+    const neighbor = map.get(cellKey(card.cell.r + dr, card.cell.c + dc));
+    if (neighbor && edgesConnect(card, neighbor, edge)) {
+      out.push(neighbor);
+    }
+  }
+  return out;
+}
+
 /**
- * Foods encountered walking outward from the animal along the trail.
- * MVP: BFS from the neighbor beyond pathStart, concatenating each path card's foods once.
+ * GAME_RULES §8 / §27: a path must stay a single non-branching line.
+ * - Path card printed with >2 ports → branch/cross geometry
+ * - Path card with >2 trail neighbors after place → branch
+ * - Animal with >1 trail neighbor → illegal topology
+ */
+export function pathTopologyViolation(
+  forest: PlacedCard[],
+): "BRANCH" | "CROSS" | null {
+  const map = forestMap(forest);
+  for (const card of forest) {
+    const def = cardDefById(card.cardId);
+    if (!def) continue;
+    const deg = trailNeighbors(card, map).length;
+    if (def.kind === "animal") {
+      if (deg > 1) return "BRANCH";
+      continue;
+    }
+    if (def.connections.length > 2) {
+      return def.connections.length > 3 ? "CROSS" : "BRANCH";
+    }
+    if (deg > 2) return "BRANCH";
+  }
+  return null;
+}
+
+/**
+ * Foods encountered walking outward from the animal along its polyline trail
+ * (GAME_RULES §10 / §28) — unique next edge, not BFS.
  */
 export function foodsAlongAnimalPath(animal: PlacedCard, forest: PlacedCard[]): Food[] {
   const def = cardDefById(animal.cardId) as AnimalCardDef | undefined;
@@ -138,25 +180,26 @@ export function foodsAlongAnimalPath(animal: PlacedCard, forest: PlacedCard[]): 
   if (!first || !edgesConnect(animal, first, startEdge)) return [];
 
   const foods: Food[] = [];
+  let prev: PlacedCard = animal;
+  let cur: PlacedCard | undefined = first;
   const visited = new Set<string>([animal.instanceId]);
-  const queue: PlacedCard[] = [first];
-  visited.add(first.instanceId);
 
-  while (queue.length) {
-    const cur = queue.shift()!;
+  while (cur) {
+    if (visited.has(cur.instanceId)) break;
+    visited.add(cur.instanceId);
+
+    if (cur.kind === "animal") break;
     const curDef = cardDefById(cur.cardId);
     if (curDef?.kind === "path") {
       foods.push(...curDef.foods);
     }
-    for (const edge of ["N", "E", "S", "W"] as Edge[]) {
-      const d = EDGE_DELTA[edge];
-      const neighbor = map.get(cellKey(cur.cell.r + d.dr, cur.cell.c + d.dc));
-      if (!neighbor || visited.has(neighbor.instanceId)) continue;
-      if (neighbor.kind === "animal") continue;
-      if (!edgesConnect(cur, neighbor, edge)) continue;
-      visited.add(neighbor.instanceId);
-      queue.push(neighbor);
-    }
+
+    const onward: PlacedCard[] = trailNeighbors(cur, map).filter(
+      (n) => n.instanceId !== prev.instanceId && n.kind === "path",
+    );
+    if (onward.length !== 1) break; // dead end or branch — stop
+    prev = cur;
+    cur = onward[0];
   }
   return foods;
 }

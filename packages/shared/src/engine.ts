@@ -1,7 +1,11 @@
 import { cardDefById, PLACEHOLDER_ANIMALS, PLACEHOLDER_PATHS } from "./placeholder-cards.js";
 import { findMultiAnimalPaths } from "./path-graph.js";
-import { validatePlacement } from "./placement.js";
-import { pickWinner, scorePlayerForest } from "./scoring.js";
+import { placeCardInForest, validatePlacement } from "./placement.js";
+import {
+  pickWinner,
+  playerHasWaterTarget,
+  scorePlayerForest,
+} from "./scoring.js";
 import type {
   AdvisorSlot,
   ClientIntent,
@@ -14,7 +18,7 @@ import type {
 
 const ADVISOR_ORDER: AdvisorSlot[] = ["rooster", "armadillo", "goat", "rabbit"];
 
-export type InternalMatch = MatchState & {
+export type InternalMatch = Omit<MatchState, "deckSizes"> & {
   pathDeck: string[];
   animalDeck: string[];
   discard: string[];
@@ -22,7 +26,7 @@ export type InternalMatch = MatchState & {
   waterSupply: number;
 };
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return function next() {
     let t = (seed += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -73,21 +77,32 @@ export function createLobbyMatch(seed: string): InternalMatch {
     pathDeck: [],
     animalDeck: [],
     discard: [],
-    lairSupply: 15,
+    /** Caves are unlimited per Aliaksei — supply is not a hard gate. */
+    lairSupply: Number.MAX_SAFE_INTEGER,
     waterSupply: 15,
   };
 }
 
 export function toPublicMatch(match: InternalMatch): MatchState {
   const {
-    pathDeck: _p,
-    animalDeck: _a,
-    discard: _d,
+    pathDeck,
+    animalDeck,
+    discard,
     lairSupply: _l,
-    waterSupply: _w,
+    waterSupply,
     ...pub
   } = match;
-  return pub;
+  return {
+    ...pub,
+    deckSizes: {
+      pathDeck: pathDeck.length,
+      animalDeck: animalDeck.length,
+      discard: discard.length,
+      waterSupply,
+      pathDeckTop: pathDeck[0] ?? null,
+      animalDeckTop: animalDeck[0] ?? null,
+    },
+  };
 }
 
 function drawFrom(
@@ -144,7 +159,7 @@ export function refillMarket(match: InternalMatch): InternalMatch {
   };
 }
 
-/** Count water tokens already placed on a player's animals (max 1 allowed). */
+/** Count droplet upgrades already on a player's animals (visibility / debug). */
 export function playerWaterCount(player: { forest: PlacedCard[] }): number {
   let n = 0;
   for (const card of player.forest) {
@@ -284,7 +299,7 @@ export class GameEngine {
             cardId: starterId,
             kind: "animal" as const,
             rotation: 0 as const,
-            cell: { r: 1, c: 1 },
+            cell: { r: 0, c: 0 },
             lairTokens: 0,
             waterBonus: {},
           },
@@ -344,6 +359,9 @@ export class GameEngine {
     const placeErr = validatePlacement(player.forest, intent.cell, {
       strictPathExclusiveDuringPlace: match.strictPathExclusiveDuringPlace,
       placingAnimal: marketSlot.kind === "animal",
+      cardId: marketSlot.cardId,
+      kind: marketSlot.kind,
+      rotation: intent.rotation,
     });
     if (placeErr === "OUT_OF_BOUNDS") {
       return { ok: false, error: "OUT_OF_BOUNDS", message: "Outside 4×4" };
@@ -352,7 +370,7 @@ export class GameEngine {
       return { ok: false, error: "ILLEGAL_PLACE", message: "Illegal placement" };
     }
 
-    const placed: PlacedCard = {
+    const draft: PlacedCard = {
       instanceId: `${playerId}:${marketSlot.cardId}:${player.cardCount}`,
       cardId: marketSlot.cardId,
       kind: marketSlot.kind,
@@ -361,12 +379,13 @@ export class GameEngine {
       lairTokens: 0,
       waterBonus: {},
     };
+    const { forest: grownForest } = placeCardInForest(player.forest, draft);
 
     const players = match.players.map((p) =>
       p.id === playerId
         ? {
             ...p,
-            forest: [...p.forest, placed],
+            forest: grownForest,
             cardCount: p.cardCount + 1,
           }
         : p,
@@ -391,9 +410,7 @@ export class GameEngine {
       return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
     }
     if (intent.slot === "armadillo") {
-      if (next.lairSupply <= 0) {
-        return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
-      }
+      // Unlimited caves — always place a cave upgrade on an animal.
       return {
         ok: true,
         state: {
@@ -405,8 +422,8 @@ export class GameEngine {
     }
     if (intent.slot === "goat") {
       const updatedPlayer = next.players.find((p) => p.id === playerId)!;
-      // Fan rule: at most 1 water token per player for the whole game.
-      if (next.waterSupply <= 0 || playerWaterCount(updatedPlayer) >= 1) {
+      // Droplets are per-product on an animal (max one per food), not max-1 per player.
+      if (next.waterSupply <= 0 || !playerHasWaterTarget(updatedPlayer)) {
         return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
       }
       return {
@@ -482,11 +499,11 @@ export class GameEngine {
     if (!player) {
       return { ok: false, error: "INVALID_TARGET", message: "No player" };
     }
-    if (playerWaterCount(player) >= 1) {
+    if (match.waterSupply <= 0) {
       return {
         ok: false,
         error: "INVALID_TARGET",
-        message: "Player already placed their one water token",
+        message: "No water tokens left in supply",
       };
     }
     const target = player.forest.find(
@@ -495,7 +512,14 @@ export class GameEngine {
     if (!target) {
       return { ok: false, error: "INVALID_TARGET", message: "Need an animal" };
     }
-    // Water on a printed 0-value food still grants +1 (locked product rule).
+    if ((target.waterBonus[food] ?? 0) >= 1) {
+      return {
+        ok: false,
+        error: "INVALID_TARGET",
+        message: "That product already has a droplet",
+      };
+    }
+    // Droplet on printed 0 still grants +1. At most one droplet per product.
 
     const players = match.players.map((p) =>
       p.id === playerId
@@ -505,7 +529,7 @@ export class GameEngine {
               c.instanceId === animalInstanceId
                 ? {
                     ...c,
-                    waterBonus: { [food]: 1 },
+                    waterBonus: { ...c.waterBonus, [food]: 1 as const },
                   }
                 : c,
             ),

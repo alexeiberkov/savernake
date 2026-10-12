@@ -30,7 +30,12 @@ Create a room on the landing page, open the shareable `/r/:code` link in another
 | `pnpm typecheck` | TS check all packages |
 | `pnpm test` | Shared engine stub tests |
 
-## Docs (project store)
+## Docs (authoritative in repo)
 
-- Plan: project `docs/savernake-web-plan.md`
-- Rules spec: project `internal/savernake-rules-spec.md`
+- **`GAME_RULES.md`** — game mechanics source of truth (do not change gameplay without checking)
+- **`Cursor.md`** — points agents at `GAME_RULES.md`
+- `LEGAL.md` — unofficial / non-commercial notice
+
+## Repository
+
+https://github.com/alexeiberkov/savernake

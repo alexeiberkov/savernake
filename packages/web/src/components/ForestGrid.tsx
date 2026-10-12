@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import type { Cell, Food, PlacedCard, Rotation } from "@savernake/shared";
+import {
+  forestExtent,
+  type Cell,
+  type PlacedCard,
+  type Rotation,
+} from "@savernake/shared";
 import { useLocale } from "../i18n/LocaleContext";
 import { PlaceholderCard } from "./PlaceholderCard";
 
@@ -9,36 +14,65 @@ type Props = {
   legal?: Cell[];
   onPlace?: (cell: Cell) => void;
   onSelectAnimal?: (instanceId: string) => void;
-  highlightAnimals?: boolean;
+  /** Animal instance ids that are valid advisor targets. */
+  targetAnimalIds?: string[];
   /** Ghost preview on legal cells while choosing placement. */
   preview?: { cardId: string; kind: "path" | "animal"; rotation: Rotation } | null;
-  waterFoodPicker?: {
-    animalInstanceId: string | null;
-    onPickFood: (food: Food) => void;
-  };
+  /** Selected animal waiting for product choice (droplet). */
+  selectedAnimalId?: string | null;
   /** Instance ids that just arrived — stronger place motion. */
   justPlacedId?: string | null;
   onIllegal?: () => void;
 };
-
-const FOODS: Food[] = ["berry", "worm", "egg", "nut"];
 
 export function ForestGrid({
   forest,
   legal = [],
   onPlace,
   onSelectAnimal,
-  highlightAnimals,
+  targetAnimalIds = [],
   preview,
-  waterFoodPicker,
+  selectedAnimalId = null,
   justPlacedId,
   onIllegal,
 }: Props) {
   const { t } = useLocale();
   const byCell = new Map(forest.map((c) => [`${c.cell.r},${c.cell.c}`, c]));
   const legalSet = new Set(legal.map((c) => `${c.r},${c.c}`));
+  const targetSet = new Set(targetAnimalIds);
   const [shakeKey, setShakeKey] = useState<string | null>(null);
   const shakeTimer = useRef<number | null>(null);
+
+  const bounds = useMemo(() => {
+    const cells = [
+      ...forest.map((c) => c.cell),
+      ...legal,
+    ];
+    if (!cells.length) {
+      // Empty forest awaiting first place — show a single ghost cell at (0,0)
+      return { minR: 0, maxR: 0, minC: 0, maxC: 0, rows: 1, cols: 1 };
+    }
+    let minR = Infinity;
+    let maxR = -Infinity;
+    let minC = Infinity;
+    let maxC = -Infinity;
+    for (const cell of cells) {
+      minR = Math.min(minR, cell.r);
+      maxR = Math.max(maxR, cell.r);
+      minC = Math.min(minC, cell.c);
+      maxC = Math.max(maxC, cell.c);
+    }
+    return {
+      minR,
+      maxR,
+      minC,
+      maxC,
+      rows: maxR - minR + 1,
+      cols: maxC - minC + 1,
+    };
+  }, [forest, legal]);
+
+  const occupiedExt = forestExtent(forest);
 
   useEffect(() => {
     return () => {
@@ -52,19 +86,47 @@ export function ForestGrid({
     shakeTimer.current = window.setTimeout(() => setShakeKey(null), 420);
   }
 
+  const cellCoords: Cell[] = [];
+  for (let r = bounds.minR; r <= bounds.maxR; r++) {
+    for (let c = bounds.minC; c <= bounds.maxC; c++) {
+      cellCoords.push({ r, c });
+    }
+  }
+
   return (
-    <div className="forest-grid" aria-label={t("yourForest")}>
-      {Array.from({ length: 16 }, (_, i) => {
-        const r = Math.floor(i / 4);
-        const c = i % 4;
+    <div
+      className="forest-grid"
+      aria-label={t("yourForest")}
+      style={{
+        gridTemplateColumns: `repeat(${bounds.cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${bounds.rows}, minmax(0, 1fr))`,
+      }}
+      data-extent={
+        occupiedExt
+          ? `${occupiedExt.rows}x${occupiedExt.cols}`
+          : "0x0"
+      }
+    >
+      {cellCoords.map(({ r, c }) => {
         const key = `${r},${c}`;
         const card = byCell.get(key);
         const isLegal = legalSet.has(key);
         const animalClickable = Boolean(
-          highlightAnimals && card?.kind === "animal" && onSelectAnimal,
+          card?.kind === "animal" &&
+            targetSet.has(card.instanceId) &&
+            onSelectAnimal,
+        );
+        const selected = Boolean(
+          card && selectedAnimalId === card.instanceId,
         );
         const interactive = isLegal || animalClickable;
         const shaking = shakeKey === key;
+        const inOccupied =
+          occupiedExt != null &&
+          r >= occupiedExt.minR &&
+          r <= occupiedExt.maxR &&
+          c >= occupiedExt.minC &&
+          c <= occupiedExt.maxC;
 
         return (
           <motion.div
@@ -74,7 +136,9 @@ export function ForestGrid({
             className={`forest-cell${card ? " filled" : ""}${
               isLegal ? " legal" : ""
             }${animalClickable ? " targetable" : ""}${
-              shaking ? " illegal" : ""
+              selected ? " selected-target" : ""
+            }${shaking ? " illegal" : ""}${
+              !card && !isLegal && !inOccupied ? " growth-slot" : ""
             }`}
             onClick={() => {
               if (isLegal && onPlace) {
@@ -85,7 +149,6 @@ export function ForestGrid({
                 onSelectAnimal?.(card.instanceId);
                 return;
               }
-              // Illegal / blocked click feedback when player is trying to place
               if (preview && !card) {
                 flashIllegal(key);
                 onIllegal?.();
@@ -102,7 +165,7 @@ export function ForestGrid({
             }}
             animate={
               shaking
-                ? { x: [0, -6, 6, -4, 4, 0], backgroundColor: "rgba(196,92,74,0.35)" }
+                ? { x: [0, -6, 6, -4, 4, 0] }
                 : isLegal
                   ? {
                       x: 0,
@@ -123,7 +186,7 @@ export function ForestGrid({
             }
             whileHover={interactive ? { scale: 1.03 } : undefined}
           >
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="sync">
               {card ? (
                 <motion.div
                   key={card.instanceId}
@@ -142,28 +205,9 @@ export function ForestGrid({
                     kind={card.kind}
                     rotation={card.rotation}
                     compact
+                    lairTokens={card.lairTokens}
+                    waterBonus={card.waterBonus}
                   />
-                  {card.lairTokens > 0 ? (
-                    <div className="muted tiny">+{card.lairTokens} lair</div>
-                  ) : null}
-                  {waterFoodPicker?.animalInstanceId === card.instanceId ? (
-                    <div className="food-picker">
-                      {FOODS.map((food) => (
-                        <button
-                          key={food}
-                          type="button"
-                          className="btn ghost tiny"
-                          disabled={(card.waterBonus[food] ?? 0) >= 1}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            waterFoodPicker.onPickFood(food);
-                          }}
-                        >
-                          {t(food)}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
                 </motion.div>
               ) : isLegal && preview ? (
                 <motion.div
@@ -178,6 +222,7 @@ export function ForestGrid({
                     kind={preview.kind}
                     rotation={preview.rotation}
                     compact
+                    showPopover={false}
                   />
                 </motion.div>
               ) : (
@@ -187,7 +232,7 @@ export function ForestGrid({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.7 }}
                 >
-                  {t("emptyCell")}
+                  {isLegal ? t("placeHintShort") : ""}
                 </motion.span>
               )}
             </AnimatePresence>

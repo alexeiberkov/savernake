@@ -1,7 +1,14 @@
 import { z } from "zod";
 
-export const FoodSchema = z.enum(["berry", "worm", "egg", "nut"]);
+/** Food types from GAME_RULES.md §10 / FoodType. */
+export const FoodSchema = z.enum(["berries", "worms", "eggs", "nuts"]);
 export type Food = z.infer<typeof FoodSchema>;
+
+/** Printed VP for one product on an animal (before droplet). */
+export const FoodVpSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+export type FoodVp = z.infer<typeof FoodVpSchema>;
+
+export const ALL_FOODS: Food[] = ["berries", "worms", "eggs", "nuts"];
 
 export const RotationSchema = z.union([
   z.literal(0),
@@ -46,10 +53,18 @@ export type PathCardDef = {
 export type AnimalCardDef = {
   id: string;
   kind: "animal";
-  foodValue: Record<Food, number>;
+  /**
+   * VP for each of the 4 product types this animal eats (0 / 1 / 2).
+   * Placeholder food ids until the real product list arrives.
+   */
+  foodValue: Record<Food, FoodVp>;
+  /** Initial burrow/den capacity (max products stored before caves). */
   storage: number;
+  /** Animal’s own printed VP. */
   animalPoints: 1 | 2 | 3;
   pathStart: Edge;
+  /** ASCII slug for `/animals/{slug}.png` art (fan pack). */
+  artSlug?: string;
 };
 
 export type CardDef = PathCardDef | AnimalCardDef;
@@ -62,8 +77,13 @@ export type PlacedCard = {
   kind: CardKind;
   rotation: Rotation;
   cell: Cell;
+  /** Cave / пещерка count — each +1 capacity; unlimited per animal. */
   lairTokens: number;
-  waterBonus: Partial<Record<Food, number>>;
+  /**
+   * Droplet / капелька per product: at most one per food on this animal.
+   * Value is 1 when present (boosts that product’s VP by +1 when scored).
+   */
+  waterBonus: Partial<Record<Food, 0 | 1>>;
 };
 
 export type PlayerPublic = {
@@ -93,6 +113,18 @@ export type ConflictPending = {
   animalInstanceIds: string[];
 };
 
+/** Deck/supply sizes only — never full draw piles (too large / spoilers). */
+export type MatchDeckSizes = {
+  pathDeck: number;
+  animalDeck: number;
+  discard: number;
+  /** Remaining water droplets in supply (caves unlimited). */
+  waterSupply: number;
+  /** Top of each pile when present (optional debug hint). */
+  pathDeckTop: string | null;
+  animalDeckTop: string | null;
+};
+
 export type MatchState = {
   phase: Phase;
   seed: string;
@@ -107,6 +139,14 @@ export type MatchState = {
   conflicts: ConflictPending[];
   winnerPlayerId?: string;
   strictPathExclusiveDuringPlace: boolean;
+  /** Sizes (+ optional tops) for defect reproduction; not full decks. */
+  deckSizes: MatchDeckSizes;
+};
+
+export type AutoPlayNotice = {
+  playerId: string;
+  name: string;
+  atMs: number;
 };
 
 export type RoomSnapshot = {
@@ -116,11 +156,24 @@ export type RoomSnapshot = {
   hostId: string;
   youPlayerId: string | null;
   match: MatchState;
+  /** Room settings (timer etc.) — same for all joiners. */
+  settings: {
+    /** 0 = off; else seconds. Default 60. */
+    turnTimerSeconds: number;
+  };
+  /** Epoch ms when current turn expires; null if no timer / not in turn. */
+  turnDeadlineMs: number | null;
+  /** Brief notice after server auto-played a turn. */
+  lastAutoPlayNotice: AutoPlayNotice | null;
 };
 
 export const ClientIntentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("setDisplayName"), name: z.string().min(1).max(24) }),
   z.object({ type: z.literal("startGame") }),
+  z.object({
+    type: z.literal("setTurnTimer"),
+    seconds: z.number().int().min(0).max(300),
+  }),
   z.object({
     type: z.literal("pickAndPlace"),
     slot: AdvisorSlotSchema,

@@ -1,14 +1,60 @@
 import { cardDefById } from "./placeholder-cards.js";
 import { foodsAlongAnimalPath } from "./path-graph.js";
-import type { AnimalCardDef, Food, PlacedCard, PlayerPublic } from "./types.js";
+import type {
+  AnimalCardDef,
+  Food,
+  PlacedCard,
+  PlayerPublic,
+} from "./types.js";
+import { ALL_FOODS } from "./types.js";
 
 export type AnimalScoreBreakdown = {
   instanceId: string;
   cardId: string;
   animalPoints: number;
   foodPoints: number;
+  capacity: number;
   stored: Food[];
 };
+
+/** Capacity = initial den storage + number of caves on the animal. */
+export function animalCapacity(
+  def: Pick<AnimalCardDef, "storage">,
+  animal: Pick<PlacedCard, "lairTokens">,
+): number {
+  return def.storage + animal.lairTokens;
+}
+
+/** Foods on this animal that do not yet have a droplet. */
+export function openWaterFoods(animal: PlacedCard): Food[] {
+  return ALL_FOODS.filter((food) => (animal.waterBonus[food] ?? 0) < 1);
+}
+
+export function playerHasWaterTarget(player: {
+  forest: PlacedCard[];
+}): boolean {
+  return player.forest.some(
+    (c) => c.kind === "animal" && openWaterFoods(c).length > 0,
+  );
+}
+
+/**
+ * GAME_RULES §15 / §20: water raises that food’s value by +1 for **every**
+ * collected symbol of that type (not a one-time +1 to the total).
+ */
+export function scoreStoredFoods(
+  foodValue: Record<Food, number>,
+  waterBonus: Partial<Record<Food, 0 | 1>>,
+  stored: Food[],
+): number {
+  let foodPoints = 0;
+  for (const food of stored) {
+    const base = foodValue[food] ?? 0;
+    const droplet = (waterBonus[food] ?? 0) > 0 ? 1 : 0;
+    foodPoints += base + droplet;
+  }
+  return foodPoints;
+}
 
 export function scoreAnimal(
   animal: PlacedCard,
@@ -21,25 +67,22 @@ export function scoreAnimal(
       cardId: animal.cardId,
       animalPoints: 0,
       foodPoints: 0,
+      capacity: 0,
       stored: [],
     };
   }
 
-  const capacity = def.storage + animal.lairTokens;
+  const capacity = animalCapacity(def, animal);
   const along = foodsAlongAnimalPath(animal, forest);
   const stored = along.slice(0, capacity);
-  let foodPoints = 0;
-  for (const food of stored) {
-    const base = def.foodValue[food] ?? 0;
-    const bonus = animal.waterBonus[food] ?? 0;
-    foodPoints += base + bonus;
-  }
+  const foodPoints = scoreStoredFoods(def.foodValue, animal.waterBonus, stored);
 
   return {
     instanceId: animal.instanceId,
     cardId: animal.cardId,
     animalPoints: def.animalPoints,
     foodPoints,
+    capacity,
     stored,
   };
 }
@@ -71,8 +114,6 @@ export function pickWinner(
   let bestDist = Infinity;
   for (const p of tied) {
     const dist = (p.seat - firstPlayerSeat + players.length) % players.length;
-    // "Closest to first player in turn order" — prefer smallest positive distance after FP
-    // dist 0 means the FP holder themselves among ties
     if (dist < bestDist) {
       bestDist = dist;
       best = p;

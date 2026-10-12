@@ -9,6 +9,7 @@ export function LandingPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [turnTimerSeconds, setTurnTimerSeconds] = useState(60);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -17,7 +18,7 @@ export function LandingPage() {
     setBusy(true);
     setError(null);
     try {
-      const data = await createRoomApi(name || "Host");
+      const data = await createRoomApi(name || "Host", turnTimerSeconds);
       navigate(`/r/${data.snapshot.roomCode}`);
     } catch {
       setError("CREATE_FAILED");
@@ -42,6 +43,26 @@ export function LandingPage() {
 
   return (
     <div className="hero">
+      <motion.aside
+        className="disclaimer-banner"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        aria-label={t("disclaimerTitle")}
+      >
+        <strong>{t("disclaimerTitle")}</strong>
+        <span>
+          {t("disclaimer")}
+          <a
+            href="https://berkau.pro"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://berkau.pro
+          </a>
+          {t("disclaimerLinkClose")}
+        </span>
+      </motion.aside>
       <motion.h1
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -56,14 +77,6 @@ export function LandingPage() {
         transition={{ delay: 0.12, duration: 0.45 }}
       >
         {t("tagline")}
-      </motion.p>
-      <motion.p
-        className="disclaimer"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.28 }}
-      >
-        {t("disclaimer")}
       </motion.p>
 
       <motion.div
@@ -83,10 +96,24 @@ export function LandingPage() {
               autoComplete="nickname"
             />
           </label>
+          <label>
+            {t("turnTimer")}
+            <input
+              type="number"
+              min={0}
+              max={300}
+              step={15}
+              value={turnTimerSeconds}
+              onChange={(e) => setTurnTimerSeconds(Number(e.target.value))}
+            />
+          </label>
           <button className="btn" type="submit" disabled={busy}>
             {t("createRoom")}
           </button>
         </form>
+        <p className="muted" style={{ marginTop: "0.65rem" }}>
+          {t("turnTimerHint")}
+        </p>
       </motion.div>
 
       <motion.div

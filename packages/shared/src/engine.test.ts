@@ -5,9 +5,20 @@ import {
   createLobbyMatch,
   __forceCardCount,
 } from "./engine.js";
-import { legalCells, validatePlacement } from "./placement.js";
+import {
+  forestExtent,
+  legalCells,
+  normalizeForest,
+  placeCardInForest,
+  validatePlacement,
+} from "./placement.js";
 import { findMultiAnimalPaths } from "./path-graph.js";
-import { scoreAnimal, scorePlayerForest } from "./scoring.js";
+import {
+  animalCapacity,
+  scoreAnimal,
+  scorePlayerForest,
+  scoreStoredFoods,
+} from "./scoring.js";
 import type { PlayerPublic, PlacedCard } from "./types.js";
 
 function lobbyPlayer(id: string, seat: number, host = false): PlayerPublic {
@@ -55,43 +66,116 @@ describe("GameEngine.startGame", () => {
 });
 
 describe("placement", () => {
-  it("requires adjacency and bounds", () => {
+  const opts = {
+    strictPathExclusiveDuringPlace: false,
+    placingAnimal: false,
+  };
+
+  it("starts as 1×1 at (0,0) and requires adjacency", () => {
+    assert.deepEqual(legalCells([], opts), [{ r: 0, c: 0 }]);
     const forest: PlacedCard[] = [
       {
         instanceId: "s",
-        cardId: "animal_01",
+        cardId: "animal_hedgehog",
         kind: "animal",
         rotation: 0,
-        cell: { r: 1, c: 1 },
+        cell: { r: 0, c: 0 },
         lairTokens: 0,
         waterBonus: {},
       },
     ];
+    assert.equal(validatePlacement(forest, { r: 0, c: 1 }, opts), null);
+    assert.equal(validatePlacement(forest, { r: 1, c: 0 }, opts), null);
+    assert.equal(validatePlacement(forest, { r: -1, c: 0 }, opts), null);
     assert.equal(
-      validatePlacement(forest, { r: 0, c: 1 }, {
-        strictPathExclusiveDuringPlace: false,
-        placingAnimal: false,
-      }),
-      null,
-    );
-    assert.equal(
-      validatePlacement(forest, { r: 0, c: 0 }, {
-        strictPathExclusiveDuringPlace: false,
-        placingAnimal: false,
-      }),
+      validatePlacement(forest, { r: 1, c: 1 }, opts),
       "ILLEGAL_PLACE",
     );
+  });
+
+  it("expands on edge and normalizes origin", () => {
+    const forest: PlacedCard[] = [
+      {
+        instanceId: "s",
+        cardId: "animal_hedgehog",
+        kind: "animal",
+        rotation: 0,
+        cell: { r: 0, c: 0 },
+        lairTokens: 0,
+        waterBonus: {},
+      },
+    ];
+    const { forest: grown } = placeCardInForest(forest, {
+      instanceId: "p",
+      cardId: "path_01",
+      kind: "path",
+      rotation: 0,
+      cell: { r: -1, c: 0 },
+      lairTokens: 0,
+      waterBonus: {},
+    });
+    const ext = forestExtent(grown)!;
+    assert.equal(ext.minR, 0);
+    assert.equal(ext.minC, 0);
+    assert.equal(ext.rows, 2);
+    assert.equal(ext.cols, 1);
+    assert.ok(grown.some((c) => c.instanceId === "p" && c.cell.r === 0));
+    assert.ok(grown.some((c) => c.instanceId === "s" && c.cell.r === 1));
+  });
+
+  it("hard-caps bounding box at 4×4", () => {
+    // Fill a 4×1 column at c=0
+    const forest: PlacedCard[] = Array.from({ length: 4 }, (_, r) => ({
+      instanceId: `c${r}`,
+      cardId: "path_01",
+      kind: "path" as const,
+      rotation: 0 as const,
+      cell: { r, c: 0 },
+      lairTokens: 0,
+      waterBonus: {},
+    }));
+    assert.equal(forestExtent(forest)?.rows, 4);
+    // Cannot grow a 5th row
     assert.equal(
-      validatePlacement(forest, { r: 4, c: 1 }, {
-        strictPathExclusiveDuringPlace: false,
-        placingAnimal: false,
-      }),
+      validatePlacement(forest, { r: 4, c: 0 }, opts),
       "OUT_OF_BOUNDS",
     );
-    assert.ok(legalCells(forest, {
-      strictPathExclusiveDuringPlace: false,
-      placingAnimal: false,
-    }).length >= 2);
+    assert.equal(
+      validatePlacement(forest, { r: -1, c: 0 }, opts),
+      "OUT_OF_BOUNDS",
+    );
+    // Can still grow sideways
+    assert.equal(validatePlacement(forest, { r: 0, c: 1 }, opts), null);
+  });
+
+  it("normalizeForest keeps relative layout", () => {
+    const forest = normalizeForest([
+      {
+        instanceId: "a",
+        cardId: "path_01",
+        kind: "path",
+        rotation: 0,
+        cell: { r: 2, c: 3 },
+        lairTokens: 0,
+        waterBonus: {},
+      },
+      {
+        instanceId: "b",
+        cardId: "path_02",
+        kind: "path",
+        rotation: 0,
+        cell: { r: 2, c: 4 },
+        lairTokens: 0,
+        waterBonus: {},
+      },
+    ]);
+    assert.deepEqual(
+      forest.map((c) => c.cell),
+      [
+        { r: 0, c: 0 },
+        { r: 0, c: 1 },
+      ],
+    );
   });
 });
 
@@ -172,9 +256,11 @@ describe("pickAndPlace + advisors", () => {
     assert.equal(lair.state.pendingAdvisor, null);
   });
 
-  it("goat pending then water placement", () => {
+  it("goat pending then water placement on own forest animal", () => {
     let state = startTwoPlayer("seed-water");
     const actor = state.players.find((p) => p.seat === state.turnSeat)!;
+    const ownStarter = actor.forest.find((c) => c.kind === "animal")!;
+    assert.ok(ownStarter, "starter animal in own forest");
     const cell = legalCells(actor.forest, {
       strictPathExclusiveDuringPlace: false,
       placingAnimal: false,
@@ -189,21 +275,30 @@ describe("pickAndPlace + advisors", () => {
     if (!pick.ok) return;
     state = pick.state;
     assert.equal(state.pendingAdvisor?.kind, "water");
-    const animalId = state.players.find((p) => p.id === actor.id)!.forest[0]!.instanceId;
-    const water = GameEngine.advisorPlaceWater(state, actor.id, animalId, "egg");
+    assert.equal(state.pendingAdvisor?.playerId, actor.id);
+    // Path was added; animal must still be targetable in the same forest
+    const forest = state.players.find((p) => p.id === actor.id)!.forest;
+    const animal = forest.find((c) => c.kind === "animal")!;
+    assert.equal(animal.instanceId, ownStarter.instanceId);
+    const water = GameEngine.advisorPlaceWater(
+      state,
+      actor.id,
+      animal.instanceId,
+      "eggs",
+    );
     assert.equal(water.ok, true);
     if (!water.ok) return;
-    const animal = water.state.players
+    const updated = water.state.players
       .find((p) => p.id === actor.id)!
-      .forest.find((c) => c.instanceId === animalId)!;
-    assert.equal(animal.waterBonus.egg, 1);
+      .forest.find((c) => c.instanceId === animal.instanceId)!;
+    assert.equal(updated.waterBonus.eggs, 1);
+    assert.equal(water.state.pendingAdvisor, null);
   });
 
-  it("rejects a second water for the same player", () => {
-    let state = startTwoPlayer("seed-water-once");
+  it("allows a second droplet on a different product", () => {
+    let state = startTwoPlayer("seed-water-multi");
     const actor = state.players.find((p) => p.seat === state.turnSeat)!;
     const animalId = actor.forest[0]!.instanceId;
-    // Pre-place the player's single water token
     state = {
       ...state,
       players: state.players.map((p) =>
@@ -212,7 +307,7 @@ describe("pickAndPlace + advisors", () => {
               ...p,
               forest: p.forest.map((c) =>
                 c.instanceId === animalId
-                  ? { ...c, waterBonus: { berry: 1 } }
+                  ? { ...c, waterBonus: { berries: 1 } }
                   : c,
               ),
             }
@@ -231,21 +326,84 @@ describe("pickAndPlace + advisors", () => {
     });
     assert.equal(pick.ok, true);
     if (!pick.ok) return;
-    // Already has water → skip pending advisor
-    assert.equal(pick.state.pendingAdvisor, null);
-    assert.ok(pick.state.actedSeatsThisRound.includes(actor.seat));
+    assert.equal(pick.state.pendingAdvisor?.kind, "water");
+    const water = GameEngine.advisorPlaceWater(
+      pick.state,
+      actor.id,
+      animalId,
+      "eggs",
+    );
+    assert.equal(water.ok, true);
+    if (!water.ok) return;
+    const animal = water.state.players
+      .find((p) => p.id === actor.id)!
+      .forest.find((c) => c.instanceId === animalId)!;
+    assert.equal(animal.waterBonus.berries, 1);
+    assert.equal(animal.waterBonus.eggs, 1);
+  });
+
+  it("rejects a second droplet on the same product", () => {
+    let state = startTwoPlayer("seed-water-dup");
+    const actor = state.players.find((p) => p.seat === state.turnSeat)!;
+    const animalId = actor.forest[0]!.instanceId;
+    state = {
+      ...state,
+      pendingAdvisor: { kind: "water", playerId: actor.id },
+      players: state.players.map((p) =>
+        p.id === actor.id
+          ? {
+              ...p,
+              forest: p.forest.map((c) =>
+                c.instanceId === animalId
+                  ? { ...c, waterBonus: { eggs: 1 } }
+                  : c,
+              ),
+            }
+          : p,
+      ),
+    };
+    const dup = GameEngine.advisorPlaceWater(state, actor.id, animalId, "eggs");
+    assert.equal(dup.ok, false);
+  });
+
+  it("stacks unlimited caves on one animal", () => {
+    let state = startTwoPlayer("seed-multi-cave");
+    const actor = state.players.find((p) => p.seat === state.turnSeat)!;
+    const animalId = actor.forest[0]!.instanceId;
+    state = {
+      ...state,
+      pendingAdvisor: { kind: "lair", playerId: actor.id },
+      phase: "turn",
+      players: state.players.map((p) =>
+        p.id === actor.id
+          ? {
+              ...p,
+              forest: p.forest.map((c) =>
+                c.instanceId === animalId ? { ...c, lairTokens: 2 } : c,
+              ),
+            }
+          : p,
+      ),
+    };
+    const lair = GameEngine.advisorPlaceLair(state, actor.id, animalId);
+    assert.equal(lair.ok, true);
+    if (!lair.ok) return;
+    const animal = lair.state.players
+      .find((p) => p.id === actor.id)!
+      .forest.find((c) => c.instanceId === animalId)!;
+    assert.equal(animal.lairTokens, 3);
   });
 });
 
 describe("path conflicts + scoring", () => {
   it("detects two animals linked by trail and resolves at end", () => {
-    // animal_02 pathStart E; path_02 is E-W; animal_04 pathStart W
+    // All animals pathStart N; rotate so exits face the E-W path between them.
     const forest: PlacedCard[] = [
       {
         instanceId: "a1",
-        cardId: "animal_02",
+        cardId: "animal_badger",
         kind: "animal",
-        rotation: 0,
+        rotation: 90, // N → E
         cell: { r: 1, c: 0 },
         lairTokens: 0,
         waterBonus: {},
@@ -261,9 +419,9 @@ describe("path conflicts + scoring", () => {
       },
       {
         instanceId: "a2",
-        cardId: "animal_04",
+        cardId: "animal_fox",
         kind: "animal",
-        rotation: 0,
+        rotation: 270, // N → W
         cell: { r: 1, c: 2 },
         lairTokens: 0,
         waterBonus: {},
@@ -299,15 +457,15 @@ describe("path conflicts + scoring", () => {
   });
 
   it("water on printed 0-value food still scores +1", () => {
-    // animal_01: egg printed 0, pathStart N. path_12: S+E + egg food.
+    // animal_blue_jay: eggs printed 0, pathStart N. path_12: S+E + eggs food.
     const animal: PlacedCard = {
       instanceId: "a",
-      cardId: "animal_01",
+      cardId: "animal_blue_jay",
       kind: "animal",
       rotation: 0,
       cell: { r: 1, c: 1 },
       lairTokens: 0,
-      waterBonus: { egg: 1 },
+      waterBonus: { eggs: 1 },
     };
     const path: PlacedCard = {
       instanceId: "p",
@@ -319,8 +477,63 @@ describe("path conflicts + scoring", () => {
       waterBonus: {},
     };
     const scored = scoreAnimal(animal, [animal, path]);
-    assert.deepEqual(scored.stored, ["egg"]);
-    assert.equal(scored.foodPoints, 1, "0 printed + water bonus = 1");
+    assert.deepEqual(scored.stored, ["eggs"]);
+    assert.equal(scored.foodPoints, 1, "0 printed + droplet = 1");
+  });
+
+  it("droplet adds +1 to product VP (fox eggs 2 → 3)", () => {
+    const animal: PlacedCard = {
+      instanceId: "a",
+      cardId: "animal_fox",
+      kind: "animal",
+      rotation: 0,
+      cell: { r: 1, c: 1 },
+      lairTokens: 0,
+      waterBonus: { eggs: 1 },
+    };
+    const path: PlacedCard = {
+      instanceId: "p",
+      cardId: "path_12",
+      kind: "path",
+      rotation: 0,
+      cell: { r: 0, c: 1 },
+      lairTokens: 0,
+      waterBonus: {},
+    };
+    // Fox pathStart is N — faces path_12 above at rotation 0.
+    const scored = scoreAnimal(animal, [animal, path]);
+    assert.deepEqual(scored.stored, ["eggs"]);
+    assert.equal(scored.foodPoints, 3, "printed 2 + droplet 1");
+  });
+
+  it("water bonus applies to every collected symbol of that food (GAME_RULES §15)", () => {
+    // eggs = 2, water on eggs, 3 collected → 3 × (2+1) = 9
+    assert.equal(
+      scoreStoredFoods(
+        { berries: 0, worms: 0, eggs: 2, nuts: 0 },
+        { eggs: 1 },
+        ["eggs", "eggs", "eggs"],
+      ),
+      9,
+    );
+  });
+
+  it("each cave increases store capacity by 1", () => {
+    const animal: PlacedCard = {
+      instanceId: "a",
+      cardId: "animal_hedgehog",
+      kind: "animal",
+      rotation: 0,
+      cell: { r: 1, c: 1 },
+      lairTokens: 2,
+      waterBonus: {},
+    };
+    // Hedgehog storage 3 + 2 caves = 5
+    const scored = scoreAnimal(animal, [animal]);
+    assert.equal(scored.capacity, 5);
+    assert.equal(animalCapacity({ storage: 3 }, { lairTokens: 0 }), 3);
+    assert.equal(animalCapacity({ storage: 3 }, { lairTokens: 1 }), 4);
+    assert.equal(animalCapacity({ storage: 3 }, { lairTokens: 2 }), 5);
   });
 
   it("scores forest and finishes when forced full", () => {

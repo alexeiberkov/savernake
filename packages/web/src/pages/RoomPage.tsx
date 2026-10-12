@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   legalCells,
+  openWaterFoods,
   type AdvisorSlot,
   type Food,
   type Rotation,
@@ -13,14 +14,18 @@ import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PlaceholderCard } from "../components/PlaceholderCard";
 import { TurnBanner } from "../components/TurnBanner";
+import { TurnTimer } from "../components/TurnTimer";
+import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
+import { CopyDebugState } from "../components/CopyDebugState";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
 export function RoomPage() {
   const { code } = useParams();
-  const { t } = useLocale();
-  const { snapshot, error, startGame, sendIntent, you } = useRoomSession(code);
+  const { t, locale } = useLocale();
+  const { snapshot, error, startGame, setTurnTimer, sendIntent, you } =
+    useRoomSession(code);
   const [copied, setCopied] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
@@ -57,6 +62,48 @@ export function RoomPage() {
     }
     prevForestLen.current = len;
   }, [you?.forest]);
+
+  const pendingWater =
+    snapshot?.match.pendingAdvisor?.kind === "water" &&
+    snapshot.match.pendingAdvisor.playerId === snapshot.youPlayerId
+      ? snapshot.match.pendingAdvisor
+      : null;
+
+  // Water droplet flow: keep selection in sync with pending advisor + own forest.
+  useEffect(() => {
+    if (!pendingWater) {
+      setWaterAnimalId(null);
+      return;
+    }
+    const targets = (you?.forest ?? []).filter(
+      (c) => c.kind === "animal" && openWaterFoods(c).length > 0,
+    );
+    if (targets.length === 1) {
+      setWaterAnimalId(targets[0]!.instanceId);
+    } else {
+      setWaterAnimalId((prev) =>
+        prev && targets.some((c) => c.instanceId === prev) ? prev : null,
+      );
+    }
+  }, [pendingWater, you?.forest]);
+
+  // Auto-place droplet when the selected animal has exactly one open product.
+  useEffect(() => {
+    if (!pendingWater || !waterAnimalId) return;
+    const animal = (you?.forest ?? []).find(
+      (c) => c.instanceId === waterAnimalId && c.kind === "animal",
+    );
+    if (!animal) return;
+    const open = openWaterFoods(animal);
+    if (open.length !== 1) return;
+    const food = open[0]!;
+    setWaterAnimalId(null);
+    sendIntent({
+      type: "advisorPlaceWater",
+      animalInstanceId: waterAnimalId,
+      food,
+    });
+  }, [pendingWater, waterAnimalId, you?.forest, sendIntent]);
 
   async function copyLink() {
     if (!shareUrl) return;
@@ -136,10 +183,13 @@ export function RoomPage() {
   const selectedKind = selectedMarket?.kind ?? null;
 
   const legal =
-    isMyTurn && !pendingMine && selectedSlot
+    isMyTurn && !pendingMine && selectedSlot && selectedMarket?.cardId && selectedKind
       ? legalCells(myForest, {
           strictPathExclusiveDuringPlace: match.strictPathExclusiveDuringPlace,
           placingAnimal: selectedKind === "animal",
+          cardId: selectedMarket.cardId,
+          kind: selectedKind,
+          rotation,
         })
       : [];
 
@@ -161,8 +211,19 @@ export function RoomPage() {
     illegalTimer.current = window.setTimeout(() => setIllegalNote(false), 900);
   }
 
+  const advisorCursorClass =
+    pendingMine?.kind === "water"
+      ? " cursor-advisor-water"
+      : pendingMine?.kind === "lair"
+        ? " cursor-advisor-lair"
+        : "";
+
+  const localTurnActive = Boolean(isMyTurn || pendingMine);
+
   return (
-    <div className={`table-layout${inLobby ? " lobby-mode" : ""}`}>
+    <div
+      className={`table-layout${inLobby ? " lobby-mode" : ""}${advisorCursorClass}`}
+    >
       <section className="panel">
         <h2>
           {inLobby ? t("lobby") : t("table")} · {snapshot.roomCode}
@@ -195,6 +256,32 @@ export function RoomPage() {
           <p className="error">{error}</p>
         ) : null}
 
+        <div className="timer-settings">
+          <label>
+            {t("turnTimer")}
+            {inLobby && you?.isHost ? (
+              <input
+                type="number"
+                min={0}
+                max={300}
+                step={15}
+                value={snapshot.settings.turnTimerSeconds}
+                onChange={(e) => setTurnTimer(Number(e.target.value))}
+              />
+            ) : (
+              <span className="muted">
+                {" "}
+                {snapshot.settings.turnTimerSeconds === 0
+                  ? t("turnTimerOff")
+                  : `${snapshot.settings.turnTimerSeconds}s`}
+              </span>
+            )}
+          </label>
+          {inLobby ? (
+            <p className="muted">{t("turnTimerHint")}</p>
+          ) : null}
+        </div>
+
         <h3 style={{ marginTop: "1.25rem" }}>{t("players")}</h3>
         <ul className="player-list">
           {match.players.map((p) => (
@@ -207,8 +294,11 @@ export function RoomPage() {
                   : { backgroundColor: "rgba(255,255,255,0.03)" }
               }
             >
-              <span>
+              <span className="player-name-row">
                 {p.name}{" "}
+                {!inLobby && p.seat === match.firstPlayerSeat ? (
+                  <RoosterMark />
+                ) : null}
                 {p.isHost ? <span className="muted">({t("host")})</span> : null}
                 {p.id === snapshot.youPlayerId ? " ★" : ""}
               </span>
@@ -292,6 +382,12 @@ export function RoomPage() {
                 isMyTurn={Boolean(isMyTurn || pendingMine)}
                 playerName={turnPlayer?.name}
               />
+              <TurnTimer
+                deadlineMs={snapshot.turnDeadlineMs}
+                timerSeconds={snapshot.settings.turnTimerSeconds}
+                notice={snapshot.lastAutoPlayNotice}
+                urgencyForLocalPlayer={localTurnActive}
+              />
 
               <p className="muted">
                 {t("round")} {match.round} · {t("firstPlayer")}{" "}
@@ -348,7 +444,6 @@ export function RoomPage() {
                   {preview ? (
                     <motion.div
                       className="rotate-preview"
-                      layout
                       initial={{ opacity: 0, scale: 0.85 }}
                       animate={{ opacity: 1, scale: 1 }}
                     >
@@ -358,8 +453,14 @@ export function RoomPage() {
                         kind={preview.kind}
                         rotation={preview.rotation}
                         compact
+                        showPopover={false}
                       />
                     </motion.div>
+                  ) : null}
+                  {selectedSlot ? (
+                    <p className="muted" style={{ flexBasis: "100%", margin: 0 }}>
+                      {t("cardsStayPlaced")}
+                    </p>
                   ) : null}
                   <AnimatePresence>
                     {illegalNote ? (
@@ -377,11 +478,78 @@ export function RoomPage() {
               ) : null}
 
               <h2 style={{ marginTop: "1.25rem" }}>{t("yourForest")}</h2>
+              <CopyDebugState
+                snapshot={snapshot}
+                youPlayerId={snapshot.youPlayerId}
+                selectedSlot={selectedSlot}
+                rotation={rotation}
+                waterAnimalId={waterAnimalId}
+                legal={legal}
+                locale={locale}
+                connectError={error}
+                connected={Boolean(you?.connected)}
+              />
+              {pendingMine?.kind === "water" ? (
+                <div
+                  className="water-product-picker"
+                  role="group"
+                  aria-label={t("pickWaterProduct")}
+                >
+                  <p className="muted">
+                    {waterAnimalId
+                      ? t("pickWaterProduct")
+                      : t("pickWaterAnimal")}
+                  </p>
+                  {(() => {
+                    const selected = myForest.find(
+                      (c) => c.instanceId === waterAnimalId,
+                    );
+                    if (!selected) return null;
+                    return (
+                      <div className="food-picker">
+                        {openWaterFoods(selected).map((food: Food) => (
+                          <button
+                            key={food}
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              sendIntent({
+                                type: "advisorPlaceWater",
+                                animalInstanceId: waterAnimalId!,
+                                food,
+                              });
+                              setWaterAnimalId(null);
+                            }}
+                          >
+                            {t(food)}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : null}
               <ForestGrid
                 forest={myForest}
                 legal={legal}
                 preview={preview}
                 justPlacedId={justPlacedId}
+                selectedAnimalId={waterAnimalId}
+                targetAnimalIds={
+                  pendingMine?.kind === "lair"
+                    ? myForest
+                        .filter((c) => c.kind === "animal")
+                        .map((c) => c.instanceId)
+                    : pendingMine?.kind === "water"
+                      ? myForest
+                          .filter(
+                            (c) =>
+                              c.kind === "animal" &&
+                              openWaterFoods(c).length > 0,
+                          )
+                          .map((c) => c.instanceId)
+                      : []
+                }
                 onPlace={(cell) => {
                   if (!selectedSlot) return;
                   const ok = legal.some(
@@ -399,7 +567,6 @@ export function RoomPage() {
                   });
                   setSelectedSlot(null);
                 }}
-                highlightAnimals={Boolean(pendingMine)}
                 onSelectAnimal={(instanceId) => {
                   if (!pendingMine) return;
                   if (pendingMine.kind === "lair") {
@@ -411,22 +578,6 @@ export function RoomPage() {
                     setWaterAnimalId(instanceId);
                   }
                 }}
-                waterFoodPicker={
-                  pendingMine?.kind === "water"
-                    ? {
-                        animalInstanceId: waterAnimalId,
-                        onPickFood: (food: Food) => {
-                          if (!waterAnimalId) return;
-                          sendIntent({
-                            type: "advisorPlaceWater",
-                            animalInstanceId: waterAnimalId,
-                            food,
-                          });
-                          setWaterAnimalId(null);
-                        },
-                      }
-                    : undefined
-                }
                 onIllegal={showIllegalNote}
               />
             </motion.div>
