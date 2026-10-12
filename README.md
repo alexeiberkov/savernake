@@ -34,3 +34,7 @@ Create a room on the landing page, open the shareable `/r/:code` link in another
 
 - Plan: project `docs/savernake-web-plan.md`
 - Rules spec: project `internal/savernake-rules-spec.md`
+
+## Repository
+
+https://github.com/alexeiberkov/savernake
