@@ -1,14 +1,14 @@
 import { z } from "zod";
 
-/** Placeholder product types until Aliaksei provides the real list. */
-export const FoodSchema = z.enum(["berry", "worm", "egg", "nut"]);
+/** Food types from GAME_RULES.md §10 / FoodType. */
+export const FoodSchema = z.enum(["berries", "worms", "eggs", "nuts"]);
 export type Food = z.infer<typeof FoodSchema>;
 
 /** Printed VP for one product on an animal (before droplet). */
 export const FoodVpSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
 export type FoodVp = z.infer<typeof FoodVpSchema>;
 
-export const ALL_FOODS: Food[] = ["berry", "worm", "egg", "nut"];
+export const ALL_FOODS: Food[] = ["berries", "worms", "eggs", "nuts"];
 
 export const RotationSchema = z.union([
   z.literal(0),

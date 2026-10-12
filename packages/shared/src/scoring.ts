@@ -38,6 +38,24 @@ export function playerHasWaterTarget(player: {
   );
 }
 
+/**
+ * GAME_RULES §15 / §20: water raises that food’s value by +1 for **every**
+ * collected symbol of that type (not a one-time +1 to the total).
+ */
+export function scoreStoredFoods(
+  foodValue: Record<Food, number>,
+  waterBonus: Partial<Record<Food, 0 | 1>>,
+  stored: Food[],
+): number {
+  let foodPoints = 0;
+  for (const food of stored) {
+    const base = foodValue[food] ?? 0;
+    const droplet = (waterBonus[food] ?? 0) > 0 ? 1 : 0;
+    foodPoints += base + droplet;
+  }
+  return foodPoints;
+}
+
 export function scoreAnimal(
   animal: PlacedCard,
   forest: PlacedCard[],
@@ -57,12 +75,7 @@ export function scoreAnimal(
   const capacity = animalCapacity(def, animal);
   const along = foodsAlongAnimalPath(animal, forest);
   const stored = along.slice(0, capacity);
-  let foodPoints = 0;
-  for (const food of stored) {
-    const base = def.foodValue[food] ?? 0;
-    const droplet = (animal.waterBonus[food] ?? 0) > 0 ? 1 : 0;
-    foodPoints += base + droplet;
-  }
+  const foodPoints = scoreStoredFoods(def.foodValue, animal.waterBonus, stored);
 
   return {
     instanceId: animal.instanceId,

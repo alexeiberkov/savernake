@@ -26,7 +26,7 @@ type Props = {
   onIllegal?: () => void;
 };
 
-const FOODS: Food[] = ["berry", "worm", "egg", "nut"];
+const FOODS: Food[] = ["berries", "worms", "eggs", "nuts"];
 
 export function ForestGrid({
   forest,

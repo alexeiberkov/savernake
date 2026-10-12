@@ -13,7 +13,12 @@ import {
   validatePlacement,
 } from "./placement.js";
 import { findMultiAnimalPaths } from "./path-graph.js";
-import { animalCapacity, scoreAnimal, scorePlayerForest } from "./scoring.js";
+import {
+  animalCapacity,
+  scoreAnimal,
+  scorePlayerForest,
+  scoreStoredFoods,
+} from "./scoring.js";
 import type { PlayerPublic, PlacedCard } from "./types.js";
 
 function lobbyPlayer(id: string, seat: number, host = false): PlayerPublic {
@@ -279,14 +284,14 @@ describe("pickAndPlace + advisors", () => {
       state,
       actor.id,
       animal.instanceId,
-      "egg",
+      "eggs",
     );
     assert.equal(water.ok, true);
     if (!water.ok) return;
     const updated = water.state.players
       .find((p) => p.id === actor.id)!
       .forest.find((c) => c.instanceId === animal.instanceId)!;
-    assert.equal(updated.waterBonus.egg, 1);
+    assert.equal(updated.waterBonus.eggs, 1);
     assert.equal(water.state.pendingAdvisor, null);
   });
 
@@ -302,7 +307,7 @@ describe("pickAndPlace + advisors", () => {
               ...p,
               forest: p.forest.map((c) =>
                 c.instanceId === animalId
-                  ? { ...c, waterBonus: { berry: 1 } }
+                  ? { ...c, waterBonus: { berries: 1 } }
                   : c,
               ),
             }
@@ -326,15 +331,15 @@ describe("pickAndPlace + advisors", () => {
       pick.state,
       actor.id,
       animalId,
-      "egg",
+      "eggs",
     );
     assert.equal(water.ok, true);
     if (!water.ok) return;
     const animal = water.state.players
       .find((p) => p.id === actor.id)!
       .forest.find((c) => c.instanceId === animalId)!;
-    assert.equal(animal.waterBonus.berry, 1);
-    assert.equal(animal.waterBonus.egg, 1);
+    assert.equal(animal.waterBonus.berries, 1);
+    assert.equal(animal.waterBonus.eggs, 1);
   });
 
   it("rejects a second droplet on the same product", () => {
@@ -350,14 +355,14 @@ describe("pickAndPlace + advisors", () => {
               ...p,
               forest: p.forest.map((c) =>
                 c.instanceId === animalId
-                  ? { ...c, waterBonus: { egg: 1 } }
+                  ? { ...c, waterBonus: { eggs: 1 } }
                   : c,
               ),
             }
           : p,
       ),
     };
-    const dup = GameEngine.advisorPlaceWater(state, actor.id, animalId, "egg");
+    const dup = GameEngine.advisorPlaceWater(state, actor.id, animalId, "eggs");
     assert.equal(dup.ok, false);
   });
 
@@ -452,7 +457,7 @@ describe("path conflicts + scoring", () => {
   });
 
   it("water on printed 0-value food still scores +1", () => {
-    // animal_blue_jay: egg printed 0, pathStart N. path_12: S+E + egg food.
+    // animal_blue_jay: eggs printed 0, pathStart N. path_12: S+E + eggs food.
     const animal: PlacedCard = {
       instanceId: "a",
       cardId: "animal_blue_jay",
@@ -460,7 +465,7 @@ describe("path conflicts + scoring", () => {
       rotation: 0,
       cell: { r: 1, c: 1 },
       lairTokens: 0,
-      waterBonus: { egg: 1 },
+      waterBonus: { eggs: 1 },
     };
     const path: PlacedCard = {
       instanceId: "p",
@@ -472,7 +477,7 @@ describe("path conflicts + scoring", () => {
       waterBonus: {},
     };
     const scored = scoreAnimal(animal, [animal, path]);
-    assert.deepEqual(scored.stored, ["egg"]);
+    assert.deepEqual(scored.stored, ["eggs"]);
     assert.equal(scored.foodPoints, 1, "0 printed + droplet = 1");
   });
 
@@ -484,7 +489,7 @@ describe("path conflicts + scoring", () => {
       rotation: 0,
       cell: { r: 1, c: 1 },
       lairTokens: 0,
-      waterBonus: { egg: 1 },
+      waterBonus: { eggs: 1 },
     };
     const path: PlacedCard = {
       instanceId: "p",
@@ -498,8 +503,20 @@ describe("path conflicts + scoring", () => {
     // Fox pathStart is W — rotate 90 so start faces N toward path_12.
     animal.rotation = 90;
     const scored = scoreAnimal(animal, [animal, path]);
-    assert.deepEqual(scored.stored, ["egg"]);
+    assert.deepEqual(scored.stored, ["eggs"]);
     assert.equal(scored.foodPoints, 3, "printed 2 + droplet 1");
+  });
+
+  it("water bonus applies to every collected symbol of that food (GAME_RULES §15)", () => {
+    // eggs = 2, water on eggs, 3 collected → 3 × (2+1) = 9
+    assert.equal(
+      scoreStoredFoods(
+        { berries: 0, worms: 0, eggs: 2, nuts: 0 },
+        { eggs: 1 },
+        ["eggs", "eggs", "eggs"],
+      ),
+      9,
+    );
   });
 
   it("each cave increases store capacity by 1", () => {

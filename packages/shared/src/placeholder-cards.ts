@@ -11,15 +11,15 @@ const CONN_PATTERNS: Edge[][] = [
 ];
 
 const FOOD_PATTERNS: Food[][] = [
-  ["berry"],
-  ["worm"],
-  ["egg"],
-  ["nut"],
-  ["berry", "worm"],
-  ["egg", "nut"],
-  ["worm", "egg"],
-  ["berry", "nut"],
-  ["worm", "nut", "egg"],
+  ["berries"],
+  ["worms"],
+  ["eggs"],
+  ["nuts"],
+  ["berries", "worms"],
+  ["eggs", "nuts"],
+  ["worms", "eggs"],
+  ["berries", "nuts"],
+  ["worms", "nuts", "eggs"],
 ];
 
 /**

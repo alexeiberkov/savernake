@@ -83,9 +83,9 @@ function placeholderFoodValue(i: number): Record<Food, FoodVp> {
 export const PLACEHOLDER_ANIMALS: AnimalCardDef[] = PLAYABLE_ANIMAL_SLUGS.map(
   (slug, i) => {
     const foodValue = placeholderFoodValue(i);
-    // Fox eggs example: printed +2, +3 with droplet (locked demo).
+    // Fox eggs example (GAME_RULES §15): printed +2 → +3 with water token.
     if (slug === "fox") {
-      foodValue.egg = 2;
+      foodValue.eggs = 2;
     }
     return {
       id: animalCardId(slug),
