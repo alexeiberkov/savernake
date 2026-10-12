@@ -306,6 +306,8 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
 
 .market-slot.filled,
 .forest-cell.filled {
+  padding: 0;
+  overflow: visible;
   border-style: solid;
   border-color: rgba(212, 161, 90, 0.45);
   background:
@@ -431,9 +433,11 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
   padding: 0;
   border: none;
   background: transparent;
-  /* Popover escapes the card; art is clipped in .ph-art-wrap. */
+  /* Popover escapes the card; face clips art. */
   overflow: visible;
   isolation: isolate;
+  aspect-ratio: 1;
+  min-height: 0;
 }
 
 .ph-card.has-art.compact {
@@ -441,62 +445,266 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
   aspect-ratio: 1;
 }
 
-.ph-art-wrap {
+/* Square game face — illustration + printed stats; no flavor text on face. */
+.animal-face {
   position: absolute;
   inset: 0;
-  border-radius: 6px;
+  border-radius: 7px;
   overflow: hidden;
+  border: 1px solid rgba(60, 36, 18, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 236, 200, 0.12);
+  background:
+    radial-gradient(120% 90% at 50% 30%, rgba(255, 210, 140, 0.2), transparent 55%),
+    linear-gradient(160deg, #6a4a2e 0%, #3a2618 55%, #24160e 100%);
   z-index: 0;
-  border: 1px solid rgba(232, 192, 122, 0.35);
 }
 
-.ph-art {
+.animal-face-art {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+/* Educational pack PNGs are portrait (art left / text right) — zoom left half. */
+.animal-face-img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: left center;
+  transform: scale(2.05);
+  transform-origin: 12% 42%;
   display: block;
   pointer-events: none;
   user-select: none;
-  transform: scale(1.06);
+  filter: saturate(1.05) contrast(1.02);
 }
 
-.upgrade-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem;
-  justify-content: center;
+.animal-face::after {
+  content: "";
   position: absolute;
-  left: 2px;
-  right: 2px;
-  bottom: 2px;
-  z-index: 2;
-  margin: 0;
-  max-width: none;
+  inset: 0;
+  z-index: 1;
   pointer-events: none;
+  background:
+    radial-gradient(70% 60% at 50% 45%, transparent 40%, rgba(20, 10, 4, 0.28) 100%),
+    linear-gradient(180deg, rgba(40, 22, 10, 0.08), transparent 35%, rgba(20, 10, 4, 0.22));
 }
 
-.upgrade-badge {
-  display: inline-block;
-  padding: 0.08rem 0.28rem;
+.animal-path-start {
+  position: absolute;
+  z-index: 3;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff7a6a, #c21818 70%, #7a0c0c);
+  box-shadow:
+    0 0 0 2px rgba(255, 240, 220, 0.9),
+    0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.animal-path-start.edge-n {
+  top: 0.18rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.animal-path-start.edge-s {
+  bottom: 0.18rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.animal-path-start.edge-e {
+  right: 0.18rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.animal-path-start.edge-w {
+  left: 0.18rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.animal-food-corner {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  width: 1.55rem;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.animal-food-corner.tl {
+  top: 0.12rem;
+  left: 0.12rem;
+}
+.animal-food-corner.tr {
+  top: 0.12rem;
+  right: 0.12rem;
+}
+.animal-food-corner.bl {
+  bottom: 0.12rem;
+  left: 0.12rem;
+}
+.animal-food-corner.br {
+  bottom: 0.12rem;
+  right: 0.12rem;
+}
+
+.animal-food-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+}
+
+.animal-food-vp {
+  min-width: 0.95rem;
+  height: 0.95rem;
+  padding: 0 0.12rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #3a2208;
+  background:
+    radial-gradient(circle at 35% 30%, #ffe566, #f0b429 55%, #c98412);
+  box-shadow:
+    0 0 0 1px rgba(120, 70, 10, 0.55),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.animal-water-pip {
+  position: absolute;
+  top: -0.1rem;
+  right: -0.25rem;
+  width: 0.7rem;
+  height: 0.85rem;
+}
+
+.animal-droplet-icon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.7));
+}
+
+.animal-base-vp {
+  position: absolute;
+  z-index: 3;
+  right: 0.1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.35rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
+}
+
+.animal-leaf-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.animal-base-vp-num {
+  position: relative;
+  z-index: 1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffe566;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
+}
+
+.animal-burrow {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 0.15rem;
+  transform: translateX(-50%);
+  width: 2.1rem;
+  height: 1.35rem;
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.animal-burrow-icon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.animal-burrow-num {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #c9b6ff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.65);
+}
+
+.animal-cave-pip {
+  position: absolute;
+  right: -0.55rem;
+  top: -0.15rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.05rem;
+  padding: 0.05rem 0.15rem 0.05rem 0.1rem;
   border-radius: 4px;
-  font-size: 0.55rem;
+  background: rgba(40, 28, 16, 0.75);
+  border: 1px solid rgba(212, 184, 150, 0.45);
+  color: #f0e0c8;
+  font-size: 0.48rem;
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
-  white-space: nowrap;
+  line-height: 1;
 }
 
-.upgrade-badge.cave {
-  color: #2a1c10;
-  background: linear-gradient(180deg, #d4b896, #a8845c);
-  border: 1px solid rgba(92, 61, 46, 0.45);
+.animal-cave-icon {
+  width: 0.7rem;
+  height: 0.55rem;
+  display: block;
 }
 
-.upgrade-badge.drop {
-  color: #0e2430;
-  background: linear-gradient(180deg, #9fd4e8, #5a9bb8);
-  border: 1px solid rgba(40, 90, 120, 0.4);
+@media (min-width: 720px) {
+  .animal-food-corner {
+    width: 1.85rem;
+  }
+  .animal-food-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .animal-food-vp {
+    min-width: 1.05rem;
+    height: 1.05rem;
+    font-size: 0.65rem;
+  }
+  .animal-base-vp {
+    width: 1.55rem;
+    height: 1.55rem;
+  }
+  .animal-base-vp-num {
+    font-size: 0.82rem;
+  }
+  .animal-burrow {
+    width: 2.45rem;
+    height: 1.55rem;
+  }
+  .animal-burrow-num {
+    font-size: 0.82rem;
+  }
+  .animal-path-start {
+    width: 0.65rem;
+    height: 0.65rem;
+  }
 }
 
 .animal-popover {

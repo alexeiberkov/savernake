@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   forestExtent,
   type Cell,
-  type Food,
   type PlacedCard,
   type Rotation,
 } from "@savernake/shared";
@@ -25,8 +24,6 @@ type Props = {
   justPlacedId?: string | null;
   onIllegal?: () => void;
 };
-
-const FOODS: Food[] = ["berries", "worms", "eggs", "nuts"];
 
 export function ForestGrid({
   forest,
@@ -209,30 +206,8 @@ export function ForestGrid({
                     rotation={card.rotation}
                     compact
                     lairTokens={card.lairTokens}
+                    waterBonus={card.waterBonus}
                   />
-                  {card.kind === "animal" ? (
-                    <div className="upgrade-badges">
-                      {card.lairTokens > 0 ? (
-                        <span
-                          className="upgrade-badge cave"
-                          title={`${t("caveUpgrade")} ×${card.lairTokens}`}
-                        >
-                          {t("caveShort")}×{card.lairTokens}
-                        </span>
-                      ) : null}
-                      {FOODS.filter((f) => (card.waterBonus[f] ?? 0) > 0).map(
-                        (food) => (
-                          <span
-                            key={food}
-                            className="upgrade-badge drop"
-                            title={`${t("dropletUpgrade")}: ${t(food)}`}
-                          >
-                            {t("dropletShort")}·{t(food)}
-                          </span>
-                        ),
-                      )}
-                    </div>
-                  ) : null}
                 </motion.div>
               ) : isLegal && preview ? (
                 <motion.div

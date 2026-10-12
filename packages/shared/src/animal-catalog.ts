@@ -71,6 +71,22 @@ const STARTS: Edge[] = ["N", "E", "S", "W"];
 /** Default initial den capacity until physical cards are verified. */
 export const DEFAULT_ANIMAL_STORAGE = 3;
 
+/**
+ * Printed food corners on the animal card face (fox reference / GAME_RULES).
+ * Swap `foodValue` numbers later — corner positions stay fixed.
+ */
+export const ANIMAL_FOOD_CORNERS: { food: Food; corner: "tl" | "tr" | "bl" | "br" }[] =
+  [
+    { food: "berries", corner: "tl" },
+    { food: "worms", corner: "tr" },
+    { food: "eggs", corner: "bl" },
+    { food: "nuts", corner: "br" },
+  ];
+
+/**
+ * Placeholder product VP (0/1/2) until Aliaksei supplies real weights.
+ * Pattern: ((animalIndex + foodIndex) % 3). Fox eggs forced to 2 (GAME_RULES §15).
+ */
 function placeholderFoodValue(i: number): Record<Food, FoodVp> {
   const values = {} as Record<Food, FoodVp>;
   for (let f = 0; f < ALL_FOODS.length; f++) {

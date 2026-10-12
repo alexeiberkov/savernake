@@ -4,11 +4,14 @@ import {
   cardDefById,
   slugFromAnimalCardId,
   type CardKind,
+  type Food,
+  type PlacedCard,
   type Rotation,
 } from "@savernake/shared";
 import { motion } from "framer-motion";
 import { useLocale } from "../i18n/LocaleContext";
-import { animalImageSrc, animalMetaBySlug } from "../i18n/animal-meta";
+import { animalMetaBySlug } from "../i18n/animal-meta";
+import { AnimalCardFace } from "./AnimalCardFace";
 
 type Props = {
   cardId: string;
@@ -18,11 +21,12 @@ type Props = {
   className?: string;
   /** Hide tooltip (e.g. ghost preview). */
   showPopover?: boolean;
-  /** Optional live upgrades for tooltip stats. */
+  /** Live upgrades when the card is in a forest. */
   lairTokens?: number;
+  waterBonus?: PlacedCard["waterBonus"];
 };
 
-/** Path: geometric placeholder. Animal: art only; name/stats in tooltip. */
+/** Path: geometric placeholder. Animal: square game face + hover flavor. */
 export function PlaceholderCard({
   cardId,
   kind,
@@ -31,6 +35,7 @@ export function PlaceholderCard({
   className = "",
   showPopover = true,
   lairTokens = 0,
+  waterBonus = {},
 }: Props) {
   const { locale, t } = useLocale();
 
@@ -42,7 +47,11 @@ export function PlaceholderCard({
   const label = meta?.name[locale] ?? cardId;
   const blurb = meta?.blurb[locale];
   const animalDef = def?.kind === "animal" ? def : undefined;
-  const canPopover = Boolean(showPopover && kind === "animal" && (meta || animalDef));
+  const canPopover = Boolean(
+    showPopover && kind === "animal" && (meta || animalDef),
+  );
+
+  const foodLabel = (food: Food) => t(food);
 
   return (
     <motion.div
@@ -53,15 +62,21 @@ export function PlaceholderCard({
       transition={{ type: "spring", stiffness: 220, damping: 18 }}
       aria-label={kind === "animal" ? label : `${t("placeholderArt")} ${cardId}`}
     >
-      {kind === "animal" && artSlug ? (
-        <span className="ph-art-wrap" aria-hidden>
-          <img
-            className="ph-art"
-            src={animalImageSrc(artSlug)}
-            alt=""
-            draggable={false}
-          />
-        </span>
+      {kind === "animal" && animalDef && artSlug ? (
+        <AnimalCardFace
+          def={animalDef}
+          artSlug={artSlug}
+          labels={{
+            food: foodLabel,
+            animalVp: t("animalVp"),
+            denCapacity: t("denCapacity"),
+            pathStart: t("pathStart"),
+            dropletUpgrade: t("dropletUpgrade"),
+            caveUpgrade: t("caveUpgrade"),
+          }}
+          lairTokens={lairTokens}
+          waterBonus={waterBonus}
+        />
       ) : (
         <>
           <span className="ph-kind">{kind}</span>
@@ -84,11 +99,19 @@ export function PlaceholderCard({
                 {animalCapacity(animalDef, { lairTokens })}
                 {lairTokens > 0 ? ` (${animalDef.storage}+${lairTokens})` : ""}
               </li>
-              {ALL_FOODS.map((food) => (
-                <li key={food}>
-                  {t(food)}: {animalDef.foodValue[food]}
-                </li>
-              ))}
+              <li>
+                {t("pathStart")}: {animalDef.pathStart}
+              </li>
+              {ALL_FOODS.map((food) => {
+                const base = animalDef.foodValue[food];
+                const drop = (waterBonus[food] ?? 0) > 0;
+                return (
+                  <li key={food}>
+                    {t(food)}: {base}
+                    {drop ? " +1" : ""}
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </div>
