@@ -397,13 +397,13 @@ describe("pickAndPlace + advisors", () => {
 
 describe("path conflicts + scoring", () => {
   it("detects two animals linked by trail and resolves at end", () => {
-    // animal_badger pathStart E; path_02 is E-W; animal_fox pathStart W
+    // All animals pathStart N; rotate so exits face the E-W path between them.
     const forest: PlacedCard[] = [
       {
         instanceId: "a1",
         cardId: "animal_badger",
         kind: "animal",
-        rotation: 0,
+        rotation: 90, // N → E
         cell: { r: 1, c: 0 },
         lairTokens: 0,
         waterBonus: {},
@@ -421,7 +421,7 @@ describe("path conflicts + scoring", () => {
         instanceId: "a2",
         cardId: "animal_fox",
         kind: "animal",
-        rotation: 0,
+        rotation: 270, // N → W
         cell: { r: 1, c: 2 },
         lairTokens: 0,
         waterBonus: {},
@@ -500,8 +500,7 @@ describe("path conflicts + scoring", () => {
       lairTokens: 0,
       waterBonus: {},
     };
-    // Fox pathStart is W — rotate 90 so start faces N toward path_12.
-    animal.rotation = 90;
+    // Fox pathStart is N — faces path_12 above at rotation 0.
     const scored = scoreAnimal(animal, [animal, path]);
     assert.deepEqual(scored.stored, ["eggs"]);
     assert.equal(scored.foodPoints, 3, "printed 2 + droplet 1");

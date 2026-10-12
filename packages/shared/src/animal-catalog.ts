@@ -66,10 +66,14 @@ export function slugFromAnimalCardId(cardId: string): string | null {
   return cardId.slice("animal_".length).replace(/_/g, "-");
 }
 
-const STARTS: Edge[] = ["N", "E", "S", "W"];
-
 /** Default initial den capacity until physical cards are verified. */
 export const DEFAULT_ANIMAL_STORAGE = 3;
+
+/**
+ * Printed path-start is always the top edge of the card face (fox ref).
+ * Rotation turns the whole card; engine uses pathStart + rotation.
+ */
+export const DEFAULT_PATH_START: Edge = "N";
 
 /**
  * Printed food corners on the animal card face (fox reference / GAME_RULES).
@@ -109,7 +113,7 @@ export const PLACEHOLDER_ANIMALS: AnimalCardDef[] = PLAYABLE_ANIMAL_SLUGS.map(
       foodValue,
       storage: DEFAULT_ANIMAL_STORAGE,
       animalPoints: ((i % 3) + 1) as 1 | 2 | 3,
-      pathStart: STARTS[i % 4]!,
+      pathStart: DEFAULT_PATH_START,
       artSlug: slug,
     };
   },

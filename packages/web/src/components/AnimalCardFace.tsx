@@ -2,7 +2,6 @@ import {
   ANIMAL_FOOD_CORNERS,
   animalCapacity,
   type AnimalCardDef,
-  type Edge,
   type Food,
   type PlacedCard,
 } from "@savernake/shared";
@@ -14,13 +13,6 @@ import {
   FoodIcon,
   LeafVpIcon,
 } from "./card-icons";
-
-const EDGE_CLASS: Record<Edge, string> = {
-  N: "edge-n",
-  E: "edge-e",
-  S: "edge-s",
-  W: "edge-w",
-};
 
 type Labels = {
   food: (food: Food) => string;
@@ -63,10 +55,8 @@ export function AnimalCardFace({
         />
       </span>
 
-      <span
-        className={`animal-path-start ${EDGE_CLASS[def.pathStart]}`}
-        title={labels.pathStart}
-      />
+      {/* Printed notch is top-center; card rotation moves it with the face. */}
+      <span className="animal-path-start edge-n" title={labels.pathStart} />
 
       {ANIMAL_FOOD_CORNERS.map(({ food, corner }) => {
         const vp = def.foodValue[food];
