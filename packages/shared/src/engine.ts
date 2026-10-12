@@ -1,6 +1,6 @@
 import { cardDefById, PLACEHOLDER_ANIMALS, PLACEHOLDER_PATHS } from "./placeholder-cards.js";
 import { findMultiAnimalPaths } from "./path-graph.js";
-import { validatePlacement } from "./placement.js";
+import { placeCardInForest, validatePlacement } from "./placement.js";
 import {
   pickWinner,
   playerHasWaterTarget,
@@ -289,7 +289,7 @@ export class GameEngine {
             cardId: starterId,
             kind: "animal" as const,
             rotation: 0 as const,
-            cell: { r: 1, c: 1 },
+            cell: { r: 0, c: 0 },
             lairTokens: 0,
             waterBonus: {},
           },
@@ -357,7 +357,7 @@ export class GameEngine {
       return { ok: false, error: "ILLEGAL_PLACE", message: "Illegal placement" };
     }
 
-    const placed: PlacedCard = {
+    const draft: PlacedCard = {
       instanceId: `${playerId}:${marketSlot.cardId}:${player.cardCount}`,
       cardId: marketSlot.cardId,
       kind: marketSlot.kind,
@@ -366,12 +366,13 @@ export class GameEngine {
       lairTokens: 0,
       waterBonus: {},
     };
+    const { forest: grownForest } = placeCardInForest(player.forest, draft);
 
     const players = match.players.map((p) =>
       p.id === playerId
         ? {
             ...p,
-            forest: [...p.forest, placed],
+            forest: grownForest,
             cardCount: p.cardCount + 1,
           }
         : p,

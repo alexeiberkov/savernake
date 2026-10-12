@@ -1,4 +1,6 @@
 import {
+  ALL_FOODS,
+  animalCapacity,
   cardDefById,
   slugFromAnimalCardId,
   type CardKind,
@@ -14,11 +16,13 @@ type Props = {
   rotation?: Rotation;
   compact?: boolean;
   className?: string;
-  /** Hide name/description popover (e.g. ghost preview). */
+  /** Hide tooltip (e.g. ghost preview). */
   showPopover?: boolean;
+  /** Optional live upgrades for tooltip stats. */
+  lairTokens?: number;
 };
 
-/** Path: geometric placeholder. Animal: fan-pack art; name/blurb only in popover. */
+/** Path: geometric placeholder. Animal: art only; name/stats in tooltip. */
 export function PlaceholderCard({
   cardId,
   kind,
@@ -26,6 +30,7 @@ export function PlaceholderCard({
   compact,
   className = "",
   showPopover = true,
+  lairTokens = 0,
 }: Props) {
   const { locale, t } = useLocale();
 
@@ -36,7 +41,8 @@ export function PlaceholderCard({
   const meta = kind === "animal" ? animalMetaBySlug(artSlug) : undefined;
   const label = meta?.name[locale] ?? cardId;
   const blurb = meta?.blurb[locale];
-  const canPopover = Boolean(showPopover && kind === "animal" && meta);
+  const animalDef = def?.kind === "animal" ? def : undefined;
+  const canPopover = Boolean(showPopover && kind === "animal" && (meta || animalDef));
 
   return (
     <motion.div
@@ -69,6 +75,23 @@ export function PlaceholderCard({
         <div className="animal-popover" role="tooltip">
           <strong>{label}</strong>
           {blurb ? <p>{blurb}</p> : null}
+          {animalDef ? (
+            <ul className="animal-stats">
+              <li>
+                {t("animalVp")}: {animalDef.animalPoints}
+              </li>
+              <li>
+                {t("denCapacity")}:{" "}
+                {animalCapacity(animalDef, { lairTokens })}
+                {lairTokens > 0 ? ` (${animalDef.storage}+${lairTokens})` : ""}
+              </li>
+              {ALL_FOODS.map((food) => (
+                <li key={food}>
+                  {t(food)}: {animalDef.foodValue[food]}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
     </motion.div>

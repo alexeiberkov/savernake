@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   legalCells,
+  openWaterFoods,
   type AdvisorSlot,
   type Food,
   type Rotation,
@@ -60,6 +61,48 @@ export function RoomPage() {
     }
     prevForestLen.current = len;
   }, [you?.forest]);
+
+  const pendingWater =
+    snapshot?.match.pendingAdvisor?.kind === "water" &&
+    snapshot.match.pendingAdvisor.playerId === snapshot.youPlayerId
+      ? snapshot.match.pendingAdvisor
+      : null;
+
+  // Water droplet flow: keep selection in sync with pending advisor + own forest.
+  useEffect(() => {
+    if (!pendingWater) {
+      setWaterAnimalId(null);
+      return;
+    }
+    const targets = (you?.forest ?? []).filter(
+      (c) => c.kind === "animal" && openWaterFoods(c).length > 0,
+    );
+    if (targets.length === 1) {
+      setWaterAnimalId(targets[0]!.instanceId);
+    } else {
+      setWaterAnimalId((prev) =>
+        prev && targets.some((c) => c.instanceId === prev) ? prev : null,
+      );
+    }
+  }, [pendingWater, you?.forest]);
+
+  // Auto-place droplet when the selected animal has exactly one open product.
+  useEffect(() => {
+    if (!pendingWater || !waterAnimalId) return;
+    const animal = (you?.forest ?? []).find(
+      (c) => c.instanceId === waterAnimalId && c.kind === "animal",
+    );
+    if (!animal) return;
+    const open = openWaterFoods(animal);
+    if (open.length !== 1) return;
+    const food = open[0]!;
+    setWaterAnimalId(null);
+    sendIntent({
+      type: "advisorPlaceWater",
+      animalInstanceId: waterAnimalId,
+      food,
+    });
+  }, [pendingWater, waterAnimalId, you?.forest, sendIntent]);
 
   async function copyLink() {
     if (!shareUrl) return;
@@ -427,11 +470,67 @@ export function RoomPage() {
               ) : null}
 
               <h2 style={{ marginTop: "1.25rem" }}>{t("yourForest")}</h2>
+              {pendingMine?.kind === "water" ? (
+                <div
+                  className="water-product-picker"
+                  role="group"
+                  aria-label={t("pickWaterProduct")}
+                >
+                  <p className="muted">
+                    {waterAnimalId
+                      ? t("pickWaterProduct")
+                      : t("pickWaterAnimal")}
+                  </p>
+                  {(() => {
+                    const selected = myForest.find(
+                      (c) => c.instanceId === waterAnimalId,
+                    );
+                    if (!selected) return null;
+                    return (
+                      <div className="food-picker">
+                        {openWaterFoods(selected).map((food: Food) => (
+                          <button
+                            key={food}
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              sendIntent({
+                                type: "advisorPlaceWater",
+                                animalInstanceId: waterAnimalId!,
+                                food,
+                              });
+                              setWaterAnimalId(null);
+                            }}
+                          >
+                            {t(food)}
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              ) : null}
               <ForestGrid
                 forest={myForest}
                 legal={legal}
                 preview={preview}
                 justPlacedId={justPlacedId}
+                selectedAnimalId={waterAnimalId}
+                targetAnimalIds={
+                  pendingMine?.kind === "lair"
+                    ? myForest
+                        .filter((c) => c.kind === "animal")
+                        .map((c) => c.instanceId)
+                    : pendingMine?.kind === "water"
+                      ? myForest
+                          .filter(
+                            (c) =>
+                              c.kind === "animal" &&
+                              openWaterFoods(c).length > 0,
+                          )
+                          .map((c) => c.instanceId)
+                      : []
+                }
                 onPlace={(cell) => {
                   if (!selectedSlot) return;
                   const ok = legal.some(
@@ -449,7 +548,6 @@ export function RoomPage() {
                   });
                   setSelectedSlot(null);
                 }}
-                highlightAnimals={Boolean(pendingMine)}
                 onSelectAnimal={(instanceId) => {
                   if (!pendingMine) return;
                   if (pendingMine.kind === "lair") {
@@ -461,22 +559,6 @@ export function RoomPage() {
                     setWaterAnimalId(instanceId);
                   }
                 }}
-                waterFoodPicker={
-                  pendingMine?.kind === "water"
-                    ? {
-                        animalInstanceId: waterAnimalId,
-                        onPickFood: (food: Food) => {
-                          if (!waterAnimalId) return;
-                          sendIntent({
-                            type: "advisorPlaceWater",
-                            animalInstanceId: waterAnimalId,
-                            food,
-                          });
-                          setWaterAnimalId(null);
-                        },
-                      }
-                    : undefined
-                }
                 onIllegal={showIllegalNote}
               />
             </motion.div>
