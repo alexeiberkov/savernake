@@ -61,6 +61,12 @@ const en = {
   scoreReveal: "Final scores",
   previewHint: "Preview — rotate, then place on a glow cell",
   lobbyReady: "Share the link and wait for friends. The table stays clear until the host starts.",
+  turnTimer: "Turn timer",
+  turnTimerHint: "Seconds per turn (30–300). Default 60. Use 0 to disable.",
+  turnTimerOff: "Off",
+  secondsLeft: "{n}s left",
+  autoPlayed: "Turn auto-played for {name} (timer)",
+  timerLabel: "Timer",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -127,6 +133,12 @@ const ru: Record<MessageKey, string> = {
   previewHint: "Превью — поверните и положите на светящуюся клетку",
   lobbyReady:
     "Отправьте ссылку друзьям. Стол пуст, пока хост не начнёт игру.",
+  turnTimer: "Таймер хода",
+  turnTimerHint: "Секунд на ход (30–300). По умолчанию 60. 0 — выключить.",
+  turnTimerOff: "Выкл.",
+  secondsLeft: "Осталось {n} с",
+  autoPlayed: "Ход автоматически сыгран за {name} (таймер)",
+  timerLabel: "Таймер",
 };
 
 export const messages: Record<Locale, Record<MessageKey, string>> = { en, ru };

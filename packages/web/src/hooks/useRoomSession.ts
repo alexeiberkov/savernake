@@ -56,6 +56,20 @@ export function useRoomSession(code: string | undefined) {
     });
   }, [socket]);
 
+  const setTurnTimer = useCallback(
+    (seconds: number) => {
+      socket?.emit(
+        "room:setTimer",
+        { seconds },
+        (res: { ok: boolean; error?: string }) => {
+          if (!res.ok) setError(res.error ?? "TIMER_FAILED");
+          else setError(null);
+        },
+      );
+    },
+    [socket],
+  );
+
   const sendIntent = useCallback(
     (intent: ClientIntent) => {
       socket?.emit(
@@ -75,14 +89,22 @@ export function useRoomSession(code: string | undefined) {
     return snapshot.match.players.find((p) => p.id === snapshot.youPlayerId) ?? null;
   }, [snapshot]);
 
-  return { snapshot, error, startGame, sendIntent, you, setSnapshot };
+  return {
+    snapshot,
+    error,
+    startGame,
+    setTurnTimer,
+    sendIntent,
+    you,
+    setSnapshot,
+  };
 }
 
-export async function createRoomApi(name: string) {
+export async function createRoomApi(name: string, turnTimerSeconds = 60) {
   const res = await fetch("/api/rooms", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, turnTimerSeconds }),
   });
   if (!res.ok) throw new Error("CREATE_FAILED");
   const data = (await res.json()) as {

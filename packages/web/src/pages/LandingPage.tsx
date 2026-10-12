@@ -9,6 +9,7 @@ export function LandingPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [turnTimerSeconds, setTurnTimerSeconds] = useState(60);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -17,7 +18,7 @@ export function LandingPage() {
     setBusy(true);
     setError(null);
     try {
-      const data = await createRoomApi(name || "Host");
+      const data = await createRoomApi(name || "Host", turnTimerSeconds);
       navigate(`/r/${data.snapshot.roomCode}`);
     } catch {
       setError("CREATE_FAILED");
@@ -83,10 +84,24 @@ export function LandingPage() {
               autoComplete="nickname"
             />
           </label>
+          <label>
+            {t("turnTimer")}
+            <input
+              type="number"
+              min={0}
+              max={300}
+              step={15}
+              value={turnTimerSeconds}
+              onChange={(e) => setTurnTimerSeconds(Number(e.target.value))}
+            />
+          </label>
           <button className="btn" type="submit" disabled={busy}>
             {t("createRoom")}
           </button>
         </form>
+        <p className="muted" style={{ marginTop: "0.65rem" }}>
+          {t("turnTimerHint")}
+        </p>
       </motion.div>
 
       <motion.div

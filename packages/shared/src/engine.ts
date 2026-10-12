@@ -22,7 +22,7 @@ export type InternalMatch = MatchState & {
   waterSupply: number;
 };
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   return function next() {
     let t = (seed += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);

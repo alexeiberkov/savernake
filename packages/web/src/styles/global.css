@@ -493,3 +493,46 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
 .table-layout.lobby-mode .play-panel {
   border-style: dashed;
 }
+
+.timer-settings {
+  margin-top: 1rem;
+}
+
+.timer-settings input[type="number"] {
+  min-width: 5rem;
+  margin-left: 0.35rem;
+}
+
+.turn-timer-wrap {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.turn-timer {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 220, 196, 0.22);
+  background: rgba(20, 36, 28, 0.75);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.turn-timer.urgent {
+  color: #2a1c10;
+  background: linear-gradient(180deg, #f0b07a, #c45c4a);
+  border-color: transparent;
+}
+
+.auto-play-notice {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(212, 161, 90, 0.18);
+  border: 1px solid rgba(212, 161, 90, 0.45);
+  color: var(--amber-bright);
+  font-size: 0.9rem;
+}

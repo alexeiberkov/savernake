@@ -13,6 +13,7 @@ import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PlaceholderCard } from "../components/PlaceholderCard";
 import { TurnBanner } from "../components/TurnBanner";
+import { TurnTimer } from "../components/TurnTimer";
 import { ScoreReveal } from "../components/ScoreReveal";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
@@ -20,7 +21,8 @@ const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 export function RoomPage() {
   const { code } = useParams();
   const { t } = useLocale();
-  const { snapshot, error, startGame, sendIntent, you } = useRoomSession(code);
+  const { snapshot, error, startGame, setTurnTimer, sendIntent, you } =
+    useRoomSession(code);
   const [copied, setCopied] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
@@ -195,6 +197,32 @@ export function RoomPage() {
           <p className="error">{error}</p>
         ) : null}
 
+        <div className="timer-settings">
+          <label>
+            {t("turnTimer")}
+            {inLobby && you?.isHost ? (
+              <input
+                type="number"
+                min={0}
+                max={300}
+                step={15}
+                value={snapshot.settings.turnTimerSeconds}
+                onChange={(e) => setTurnTimer(Number(e.target.value))}
+              />
+            ) : (
+              <span className="muted">
+                {" "}
+                {snapshot.settings.turnTimerSeconds === 0
+                  ? t("turnTimerOff")
+                  : `${snapshot.settings.turnTimerSeconds}s`}
+              </span>
+            )}
+          </label>
+          {inLobby ? (
+            <p className="muted">{t("turnTimerHint")}</p>
+          ) : null}
+        </div>
+
         <h3 style={{ marginTop: "1.25rem" }}>{t("players")}</h3>
         <ul className="player-list">
           {match.players.map((p) => (
@@ -291,6 +319,11 @@ export function RoomPage() {
                 active={match.phase === "turn"}
                 isMyTurn={Boolean(isMyTurn || pendingMine)}
                 playerName={turnPlayer?.name}
+              />
+              <TurnTimer
+                deadlineMs={snapshot.turnDeadlineMs}
+                timerSeconds={snapshot.settings.turnTimerSeconds}
+                notice={snapshot.lastAutoPlayNotice}
               />
 
               <p className="muted">

@@ -109,6 +109,12 @@ export type MatchState = {
   strictPathExclusiveDuringPlace: boolean;
 };
 
+export type AutoPlayNotice = {
+  playerId: string;
+  name: string;
+  atMs: number;
+};
+
 export type RoomSnapshot = {
   roomCode: string;
   sharePath: string;
@@ -116,11 +122,24 @@ export type RoomSnapshot = {
   hostId: string;
   youPlayerId: string | null;
   match: MatchState;
+  /** Room settings (timer etc.) — same for all joiners. */
+  settings: {
+    /** 0 = off; else seconds. Default 60. */
+    turnTimerSeconds: number;
+  };
+  /** Epoch ms when current turn expires; null if no timer / not in turn. */
+  turnDeadlineMs: number | null;
+  /** Brief notice after server auto-played a turn. */
+  lastAutoPlayNotice: AutoPlayNotice | null;
 };
 
 export const ClientIntentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("setDisplayName"), name: z.string().min(1).max(24) }),
   z.object({ type: z.literal("startGame") }),
+  z.object({
+    type: z.literal("setTurnTimer"),
+    seconds: z.number().int().min(0).max(300),
+  }),
   z.object({
     type: z.literal("pickAndPlace"),
     slot: AdvisorSlotSchema,
