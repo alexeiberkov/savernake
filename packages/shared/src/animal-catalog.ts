@@ -1,4 +1,5 @@
-import type { AnimalCardDef, Edge, Food } from "./types.js";
+import type { AnimalCardDef, Edge, Food, FoodVp } from "./types.js";
+import { ALL_FOODS } from "./types.js";
 
 /**
  * Playable animal deck (19) — advisors (rooster/armadillo/goat/rabbit) are board
@@ -65,24 +66,32 @@ export function slugFromAnimalCardId(cardId: string): string | null {
   return cardId.slice("animal_".length).replace(/_/g, "-");
 }
 
-const FOODS: Food[] = ["berry", "worm", "egg", "nut"];
 const STARTS: Edge[] = ["N", "E", "S", "W"];
 
-/** Synthetic stats — placeholders until physical verification. */
+/** Default initial den capacity until physical cards are verified. */
+export const DEFAULT_ANIMAL_STORAGE = 3;
+
+function placeholderFoodValue(i: number): Record<Food, FoodVp> {
+  const values = {} as Record<Food, FoodVp>;
+  for (let f = 0; f < ALL_FOODS.length; f++) {
+    values[ALL_FOODS[f]!] = ((i + f) % 3) as FoodVp;
+  }
+  return values;
+}
+
+/** Synthetic stats — placeholders until physical verification / real product list. */
 export const PLACEHOLDER_ANIMALS: AnimalCardDef[] = PLAYABLE_ANIMAL_SLUGS.map(
   (slug, i) => {
-    const prefer = FOODS[i % 4]!;
-    const secondary = FOODS[(i + 1) % 4]!;
+    const foodValue = placeholderFoodValue(i);
+    // Fox eggs example: printed +2, +3 with droplet (locked demo).
+    if (slug === "fox") {
+      foodValue.egg = 2;
+    }
     return {
       id: animalCardId(slug),
       kind: "animal" as const,
-      foodValue: {
-        berry: prefer === "berry" ? 2 : secondary === "berry" ? 1 : 0,
-        worm: prefer === "worm" ? 2 : secondary === "worm" ? 1 : 0,
-        egg: prefer === "egg" ? 2 : secondary === "egg" ? 1 : 0,
-        nut: prefer === "nut" ? 2 : secondary === "nut" ? 1 : 0,
-      },
-      storage: 2 + (i % 4),
+      foodValue,
+      storage: DEFAULT_ANIMAL_STORAGE,
       animalPoints: ((i % 3) + 1) as 1 | 2 | 3,
       pathStart: STARTS[i % 4]!,
       artSlug: slug,

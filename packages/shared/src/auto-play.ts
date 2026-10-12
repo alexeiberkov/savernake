@@ -1,15 +1,14 @@
-import { GameEngine, type InternalMatch, playerWaterCount } from "./engine.js";
+import { GameEngine, type InternalMatch } from "./engine.js";
 import { legalCells } from "./placement.js";
+import { openWaterFoods } from "./scoring.js";
 import type {
   AdvisorSlot,
   ClientIntent,
   EngineResult,
-  Food,
   Rotation,
 } from "./types.js";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
-const FOODS: Food[] = ["berry", "worm", "egg", "nut"];
 
 export type PickPlaceOption = Extract<ClientIntent, { type: "pickAndPlace" }>;
 
@@ -68,16 +67,22 @@ function resolvePendingAdvisor(
     return GameEngine.advisorPlaceLair(match, player.id, animal.instanceId);
   }
 
-  // water — only foods without a token; player may have at most 1 water total
-  if (playerWaterCount(player) >= 1) {
-    // Should not be pending, but finish safely by skipping via dummy finish:
-    // re-apply as no-op by placing is illegal — clear by picking goat skip path isn't available.
-    // Force-clear: treat as invalid and leave state (server shouldn't get here).
-    return { ok: false, error: "INVALID_TARGET", message: "Water already placed" };
+  const candidates = animals.flatMap((animal) =>
+    openWaterFoods(animal).map((food) => ({
+      animalInstanceId: animal.instanceId,
+      food,
+    })),
+  );
+  const choice = pickUniform(candidates, rand);
+  if (!choice) {
+    return { ok: false, error: "INVALID_TARGET", message: "No open water slots" };
   }
-  const animal = pickUniform(animals, rand)!;
-  const food = pickUniform(FOODS, rand)!;
-  return GameEngine.advisorPlaceWater(match, player.id, animal.instanceId, food);
+  return GameEngine.advisorPlaceWater(
+    match,
+    player.id,
+    choice.animalInstanceId,
+    choice.food,
+  );
 }
 
 /**

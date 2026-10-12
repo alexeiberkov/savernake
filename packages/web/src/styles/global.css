@@ -144,11 +144,14 @@ a {
   font-weight: 600;
 }
 
-.disclaimer-credit {
-  display: block;
-  margin-top: 0.45rem;
+.disclaimer-banner a {
+  color: var(--amber-bright);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.disclaimer-banner a:hover {
   color: var(--amber);
-  font-size: 0.82rem;
 }
 
 .disclaimer {
@@ -421,26 +424,36 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
   user-select: none;
 }
 
-.ph-name {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1;
-  padding: 0.2rem 0.25rem;
-  font-size: 0.62rem;
-  line-height: 1.15;
-  text-align: center;
-  background: linear-gradient(transparent, rgba(18, 28, 22, 0.92));
-  color: var(--text);
-  font-weight: 600;
-  pointer-events: none;
-  border-radius: 0 0 7px 7px;
+.upgrade-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  justify-content: center;
+  margin-top: 0.2rem;
+  max-width: 100%;
 }
 
-.ph-card.compact .ph-name {
+.upgrade-badge {
+  display: inline-block;
+  padding: 0.08rem 0.28rem;
+  border-radius: 4px;
   font-size: 0.55rem;
-  padding: 0.15rem 0.2rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.upgrade-badge.cave {
+  color: #2a1c10;
+  background: linear-gradient(180deg, #d4b896, #a8845c);
+  border: 1px solid rgba(92, 61, 46, 0.45);
+}
+
+.upgrade-badge.drop {
+  color: #0e2430;
+  background: linear-gradient(180deg, #9fd4e8, #5a9bb8);
+  border: 1px solid rgba(40, 90, 120, 0.4);
 }
 
 .animal-popover {

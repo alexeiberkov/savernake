@@ -1,7 +1,14 @@
 import { z } from "zod";
 
+/** Placeholder product types until Aliaksei provides the real list. */
 export const FoodSchema = z.enum(["berry", "worm", "egg", "nut"]);
 export type Food = z.infer<typeof FoodSchema>;
+
+/** Printed VP for one product on an animal (before droplet). */
+export const FoodVpSchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+export type FoodVp = z.infer<typeof FoodVpSchema>;
+
+export const ALL_FOODS: Food[] = ["berry", "worm", "egg", "nut"];
 
 export const RotationSchema = z.union([
   z.literal(0),
@@ -46,8 +53,14 @@ export type PathCardDef = {
 export type AnimalCardDef = {
   id: string;
   kind: "animal";
-  foodValue: Record<Food, number>;
+  /**
+   * VP for each of the 4 product types this animal eats (0 / 1 / 2).
+   * Placeholder food ids until the real product list arrives.
+   */
+  foodValue: Record<Food, FoodVp>;
+  /** Initial burrow/den capacity (max products stored before caves). */
   storage: number;
+  /** Animal’s own printed VP. */
   animalPoints: 1 | 2 | 3;
   pathStart: Edge;
   /** ASCII slug for `/animals/{slug}.png` art (fan pack). */
@@ -64,8 +77,13 @@ export type PlacedCard = {
   kind: CardKind;
   rotation: Rotation;
   cell: Cell;
+  /** Cave / пещерка count — each +1 capacity; unlimited per animal. */
   lairTokens: number;
-  waterBonus: Partial<Record<Food, number>>;
+  /**
+   * Droplet / капелька per product: at most one per food on this animal.
+   * Value is 1 when present (boosts that product’s VP by +1 when scored).
+   */
+  waterBonus: Partial<Record<Food, 0 | 1>>;
 };
 
 export type PlayerPublic = {

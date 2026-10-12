@@ -143,8 +143,28 @@ export function ForestGrid({
                     rotation={card.rotation}
                     compact
                   />
-                  {card.lairTokens > 0 ? (
-                    <div className="muted tiny">+{card.lairTokens} lair</div>
+                  {card.kind === "animal" ? (
+                    <div className="upgrade-badges" aria-hidden={false}>
+                      {card.lairTokens > 0 ? (
+                        <span
+                          className="upgrade-badge cave"
+                          title={`${t("caveUpgrade")} ×${card.lairTokens}`}
+                        >
+                          {t("caveShort")}×{card.lairTokens}
+                        </span>
+                      ) : null}
+                      {FOODS.filter((f) => (card.waterBonus[f] ?? 0) > 0).map(
+                        (food) => (
+                          <span
+                            key={food}
+                            className="upgrade-badge drop"
+                            title={`${t("dropletUpgrade")}: ${t(food)}`}
+                          >
+                            {t("dropletShort")}·{t(food)}
+                          </span>
+                        ),
+                      )}
+                    </div>
                   ) : null}
                   {waterFoodPicker?.animalInstanceId === card.instanceId ? (
                     <div className="food-picker">

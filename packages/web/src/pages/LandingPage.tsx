@@ -51,8 +51,17 @@ export function LandingPage() {
         aria-label={t("disclaimerTitle")}
       >
         <strong>{t("disclaimerTitle")}</strong>
-        {t("disclaimer")}
-        <span className="disclaimer-credit">{t("artCredit")}</span>
+        <span>
+          {t("disclaimer")}
+          <a
+            href="https://berkau.pro"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://berkau.pro
+          </a>
+          {t("disclaimerLinkClose")}
+        </span>
       </motion.aside>
       <motion.h1
         initial={{ opacity: 0, y: 16 }}

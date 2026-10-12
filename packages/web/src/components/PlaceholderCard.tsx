@@ -18,7 +18,7 @@ type Props = {
   showPopover?: boolean;
 };
 
-/** Path: geometric placeholder. Animal: fan-pack art + locale popover. */
+/** Path: geometric placeholder. Animal: fan-pack art; name/blurb only in popover. */
 export function PlaceholderCard({
   cardId,
   kind,
@@ -64,7 +64,6 @@ export function PlaceholderCard({
           <span className="ph-mark" aria-hidden />
         </>
       )}
-      {kind === "animal" ? <span className="ph-name">{label}</span> : null}
 
       {canPopover ? (
         <div className="animal-popover" role="tooltip">
