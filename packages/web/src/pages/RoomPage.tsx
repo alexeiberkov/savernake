@@ -14,6 +14,7 @@ import { MarketRow } from "../components/MarketRow";
 import { PlaceholderCard } from "../components/PlaceholderCard";
 import { TurnBanner } from "../components/TurnBanner";
 import { TurnTimer } from "../components/TurnTimer";
+import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
@@ -163,8 +164,19 @@ export function RoomPage() {
     illegalTimer.current = window.setTimeout(() => setIllegalNote(false), 900);
   }
 
+  const advisorCursorClass =
+    pendingMine?.kind === "water"
+      ? " cursor-advisor-water"
+      : pendingMine?.kind === "lair"
+        ? " cursor-advisor-lair"
+        : "";
+
+  const localTurnActive = Boolean(isMyTurn || pendingMine);
+
   return (
-    <div className={`table-layout${inLobby ? " lobby-mode" : ""}`}>
+    <div
+      className={`table-layout${inLobby ? " lobby-mode" : ""}${advisorCursorClass}`}
+    >
       <section className="panel">
         <h2>
           {inLobby ? t("lobby") : t("table")} · {snapshot.roomCode}
@@ -235,8 +247,11 @@ export function RoomPage() {
                   : { backgroundColor: "rgba(255,255,255,0.03)" }
               }
             >
-              <span>
+              <span className="player-name-row">
                 {p.name}{" "}
+                {!inLobby && p.seat === match.firstPlayerSeat ? (
+                  <RoosterMark />
+                ) : null}
                 {p.isHost ? <span className="muted">({t("host")})</span> : null}
                 {p.id === snapshot.youPlayerId ? " ★" : ""}
               </span>
@@ -324,6 +339,7 @@ export function RoomPage() {
                 deadlineMs={snapshot.turnDeadlineMs}
                 timerSeconds={snapshot.settings.turnTimerSeconds}
                 notice={snapshot.lastAutoPlayNotice}
+                urgencyForLocalPlayer={localTurnActive}
               />
 
               <p className="muted">

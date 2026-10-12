@@ -7,9 +7,16 @@ type Props = {
   deadlineMs: number | null;
   timerSeconds: number;
   notice: AutoPlayNotice | null;
+  /** Pulse full viewport only on the active local player's client. */
+  urgencyForLocalPlayer?: boolean;
 };
 
-export function TurnTimer({ deadlineMs, timerSeconds, notice }: Props) {
+export function TurnTimer({
+  deadlineMs,
+  timerSeconds,
+  notice,
+  urgencyForLocalPlayer = false,
+}: Props) {
   const { t } = useLocale();
   const [left, setLeft] = useState<number | null>(null);
   const [showNotice, setShowNotice] = useState<AutoPlayNotice | null>(null);
@@ -36,13 +43,31 @@ export function TurnTimer({ deadlineMs, timerSeconds, notice }: Props) {
 
   if (timerSeconds <= 0 && !showNotice) return null;
 
-  const urgent = left != null && left <= 10;
+  const urgentBadge = left != null && left <= 10;
+  const screenUrgency =
+    urgencyForLocalPlayer &&
+    timerSeconds > 0 &&
+    left != null &&
+    left <= 20;
 
   return (
     <div className="turn-timer-wrap">
+      <AnimatePresence>
+        {screenUrgency ? (
+          <motion.div
+            key={`urgency-${deadlineMs}`}
+            className="turn-urgency-overlay"
+            aria-hidden
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.12, 0.28, 0.12] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+          />
+        ) : null}
+      </AnimatePresence>
       {left != null ? (
         <motion.div
-          className={`turn-timer${urgent ? " urgent" : ""}`}
+          className={`turn-timer${urgentBadge ? " urgent" : ""}`}
           key={deadlineMs ?? "none"}
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}

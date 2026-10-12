@@ -67,6 +67,9 @@ const en = {
   secondsLeft: "{n}s left",
   autoPlayed: "Turn auto-played for {name} (timer)",
   timerLabel: "Timer",
+  roosterTitle: "Rooster — first player",
+  advisorCursorWater: "Place water token",
+  advisorCursorLair: "Place lair token",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -139,6 +142,9 @@ const ru: Record<MessageKey, string> = {
   secondsLeft: "Осталось {n} с",
   autoPlayed: "Ход автоматически сыгран за {name} (таймер)",
   timerLabel: "Таймер",
+  roosterTitle: "Петушок — первый игрок",
+  advisorCursorWater: "Положить фишку воды",
+  advisorCursorLair: "Положить фишку норы (пещерка)",
 };
 
 export const messages: Record<Locale, Record<MessageKey, string>> = { en, ru };
