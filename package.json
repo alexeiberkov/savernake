@@ -1,0 +1,18 @@
+{
+  "name": "savernake",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Unofficial non-commercial fan remake scaffold — Savernake",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @savernake/server --filter @savernake/web dev",
+    "dev:server": "pnpm --filter @savernake/server dev",
+    "dev:web": "pnpm --filter @savernake/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @savernake/shared test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.33.3"
+}
