@@ -89,7 +89,12 @@ export function LandingPage() {
         </form>
       </motion.div>
 
-      <div className="panel">
+      <motion.div
+        className="panel"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.32, duration: 0.4 }}
+      >
         <h2>{t("joinRoom")}</h2>
         <form className="row" onSubmit={onJoin}>
           <label>
@@ -115,7 +120,7 @@ export function LandingPage() {
           </button>
         </form>
         {error ? <p className="error">{error}</p> : null}
-      </div>
+      </motion.div>
     </div>
   );
 }

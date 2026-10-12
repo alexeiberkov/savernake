@@ -51,6 +51,14 @@ const en = {
   worm: "Worm",
   egg: "Egg",
   nut: "Nut",
+  turnBannerYours: "Your turn",
+  turnBannerOther: "{name}'s turn",
+  drawingCard: "Market card",
+  placingCard: "Placing",
+  illegalPlace: "That cell is not allowed",
+  scoreReveal: "Final scores",
+  previewHint: "Preview — rotate, then place on a glow cell",
+  lobbyReady: "Share the link and wait for friends. The table stays clear until the host starts.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -106,6 +114,15 @@ const ru: Record<MessageKey, string> = {
   worm: "Червяк",
   egg: "Яйцо",
   nut: "Орех",
+  turnBannerYours: "Ваш ход",
+  turnBannerOther: "Ход: {name}",
+  drawingCard: "Карта рынка",
+  placingCard: "Укладка",
+  illegalPlace: "Сюда нельзя",
+  scoreReveal: "Итоговый счёт",
+  previewHint: "Превью — поверните и положите на светящуюся клетку",
+  lobbyReady:
+    "Отправьте ссылку друзьям. Стол пуст, пока хост не начнёт игру.",
 };
 
 export const messages: Record<Locale, Record<MessageKey, string>> = { en, ru };

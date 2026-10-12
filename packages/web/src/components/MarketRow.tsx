@@ -1,48 +1,85 @@
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import type { AdvisorSlot, MarketSlot } from "@savernake/shared";
 import { useLocale } from "../i18n/LocaleContext";
+import { PlaceholderCard } from "./PlaceholderCard";
 
 type Props = {
   market: MarketSlot[];
   selected?: AdvisorSlot | null;
   selectable?: boolean;
   onSelect?: (slot: AdvisorSlot) => void;
+  /** Bumps when market refills so draw-in staggers again. */
+  dealKey?: string | number;
 };
 
-export function MarketRow({ market, selected, selectable, onSelect }: Props) {
+export function MarketRow({
+  market,
+  selected,
+  selectable,
+  onSelect,
+  dealKey = 0,
+}: Props) {
   const { t } = useLocale();
   return (
     <div className="market-row" aria-label={t("market")}>
       {market.map((slot, index) => {
         const canPick = Boolean(selectable && slot.cardId);
         return (
-          <motion.button
-            key={slot.slot}
-            type="button"
-            className={`market-slot${slot.cardId ? " filled" : ""}${
-              selected === slot.slot ? " selected" : ""
-            }`}
-            disabled={!canPick}
-            onClick={() => canPick && onSelect?.(slot.slot)}
-            initial={{ y: 12, opacity: 0 }}
-            animate={{
-              y: 0,
-              opacity: 1,
-              scale: selected === slot.slot ? 1.04 : 1,
-            }}
-            transition={{ delay: index * 0.06, type: "spring", stiffness: 260 }}
-            whileTap={canPick ? { scale: 0.96 } : undefined}
-          >
+          <div key={slot.slot} className="market-slot-wrap">
             <span className="slot-label">{slot.slot}</span>
-            {slot.cardId ? (
-              <>
-                {slot.cardId}
-                <div className="muted">{slot.kind}</div>
-              </>
-            ) : (
-              "—"
-            )}
-          </motion.button>
+            <AnimatePresence mode="popLayout">
+              {slot.cardId && slot.kind ? (
+                <motion.button
+                  key={`${dealKey}-${slot.cardId}`}
+                  type="button"
+                  className={`market-slot filled${
+                    selected === slot.slot ? " selected" : ""
+                  }`}
+                  disabled={!canPick}
+                  onClick={() => canPick && onSelect?.(slot.slot)}
+                  initial={{ y: -28, opacity: 0, rotate: -6, scale: 0.86 }}
+                  animate={{
+                    y: selected === slot.slot ? -6 : 0,
+                    opacity: 1,
+                    rotate: 0,
+                    scale: selected === slot.slot ? 1.06 : 1,
+                  }}
+                  exit={{
+                    y: 36,
+                    opacity: 0,
+                    scale: 0.75,
+                    rotate: 8,
+                    transition: { duration: 0.28, ease: "easeIn" },
+                  }}
+                  transition={{
+                    delay: index * 0.07,
+                    type: "spring",
+                    stiffness: 280,
+                    damping: 20,
+                  }}
+                  whileHover={canPick ? { y: -4 } : undefined}
+                  whileTap={canPick ? { scale: 0.96 } : undefined}
+                  aria-label={`${t("drawingCard")} ${slot.cardId}`}
+                >
+                  <PlaceholderCard
+                    cardId={slot.cardId}
+                    kind={slot.kind}
+                    compact
+                  />
+                </motion.button>
+              ) : (
+                <motion.div
+                  key={`${slot.slot}-empty`}
+                  className="market-slot empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.55 }}
+                  exit={{ opacity: 0 }}
+                >
+                  —
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         );
       })}
     </div>

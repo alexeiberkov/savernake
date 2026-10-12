@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -11,6 +11,9 @@ import { useLocale } from "../i18n/LocaleContext";
 import { joinRoomApi, useRoomSession } from "../hooks/useRoomSession";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
+import { PlaceholderCard } from "../components/PlaceholderCard";
+import { TurnBanner } from "../components/TurnBanner";
+import { ScoreReveal } from "../components/ScoreReveal";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
@@ -25,11 +28,35 @@ export function RoomPage() {
   const [selectedSlot, setSelectedSlot] = useState<AdvisorSlot | null>(null);
   const [rotation, setRotation] = useState<Rotation>(0);
   const [waterAnimalId, setWaterAnimalId] = useState<string | null>(null);
+  const [justPlacedId, setJustPlacedId] = useState<string | null>(null);
+  const [illegalNote, setIllegalNote] = useState(false);
+  const prevForestLen = useRef(0);
+  const illegalTimer = useRef<number | null>(null);
 
   const shareUrl = useMemo(() => {
     if (!code) return "";
     return `${window.location.origin}/r/${code.toUpperCase()}`;
   }, [code]);
+
+  useEffect(() => {
+    return () => {
+      if (illegalTimer.current) window.clearTimeout(illegalTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const len = you?.forest.length ?? 0;
+    if (len > prevForestLen.current) {
+      const newest = you?.forest[you.forest.length - 1];
+      if (newest) {
+        setJustPlacedId(newest.instanceId);
+        const id = window.setTimeout(() => setJustPlacedId(null), 700);
+        prevForestLen.current = len;
+        return () => window.clearTimeout(id);
+      }
+    }
+    prevForestLen.current = len;
+  }, [you?.forest]);
 
   async function copyLink() {
     if (!shareUrl) return;
@@ -105,8 +132,8 @@ export function RoomPage() {
       ? match.pendingAdvisor
       : null;
 
-  const selectedKind =
-    match.market.find((m) => m.slot === selectedSlot)?.kind ?? null;
+  const selectedMarket = match.market.find((m) => m.slot === selectedSlot);
+  const selectedKind = selectedMarket?.kind ?? null;
 
   const legal =
     isMyTurn && !pendingMine && selectedSlot
@@ -117,9 +144,25 @@ export function RoomPage() {
       : [];
 
   const myConflicts = match.conflicts.filter((c) => c.playerId === you?.id);
+  const turnPlayer = match.players.find((p) => p.seat === match.turnSeat);
+
+  const preview =
+    selectedMarket?.cardId && selectedKind
+      ? {
+          cardId: selectedMarket.cardId,
+          kind: selectedKind,
+          rotation,
+        }
+      : null;
+
+  function showIllegalNote() {
+    setIllegalNote(true);
+    if (illegalTimer.current) window.clearTimeout(illegalTimer.current);
+    illegalTimer.current = window.setTimeout(() => setIllegalNote(false), 900);
+  }
 
   return (
-    <div className="table-layout">
+    <div className={`table-layout${inLobby ? " lobby-mode" : ""}`}>
       <section className="panel">
         <h2>
           {inLobby ? t("lobby") : t("table")} · {snapshot.roomCode}
@@ -155,14 +198,19 @@ export function RoomPage() {
         <h3 style={{ marginTop: "1.25rem" }}>{t("players")}</h3>
         <ul className="player-list">
           {match.players.map((p) => (
-            <li key={p.id}>
+            <motion.li
+              key={p.id}
+              layout
+              animate={
+                match.phase === "turn" && match.turnSeat === p.seat
+                  ? { backgroundColor: "rgba(212,161,90,0.14)" }
+                  : { backgroundColor: "rgba(255,255,255,0.03)" }
+              }
+            >
               <span>
                 {p.name}{" "}
                 {p.isHost ? <span className="muted">({t("host")})</span> : null}
                 {p.id === snapshot.youPlayerId ? " ★" : ""}
-                {match.turnSeat === p.seat && match.phase === "turn"
-                  ? " ◀"
-                  : ""}
               </span>
               <span className="muted">
                 {t("cards")} {p.cardCount}/16
@@ -170,39 +218,27 @@ export function RoomPage() {
                 {" · "}
                 {p.connected ? t("connected") : t("disconnected")}
               </span>
-            </li>
+            </motion.li>
           ))}
         </ul>
       </section>
 
-      <section className="panel">
+      <section className="panel play-panel">
         <AnimatePresence mode="wait">
           {match.phase === "finished" ? (
             <motion.div
               key="finished"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
             >
-              <h2>{t("finished")}</h2>
-              <p>
-                {t("winner")}:{" "}
-                <strong>
-                  {match.players.find((p) => p.id === match.winnerPlayerId)
-                    ?.name ?? "—"}
-                </strong>
-              </p>
-              <ul className="player-list">
-                {match.players.map((p) => (
-                  <li key={p.id}>
-                    <span>{p.name}</span>
-                    <span>
-                      {t("score")} {p.score ?? 0}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <ForestGrid forest={myForest} />
+              <ScoreReveal
+                players={match.players}
+                winnerPlayerId={match.winnerPlayerId}
+              />
+              <div style={{ marginTop: "1.25rem" }}>
+                <ForestGrid forest={myForest} />
+              </div>
             </motion.div>
           ) : match.phase === "conflictResolve" ? (
             <motion.div
@@ -216,15 +252,16 @@ export function RoomPage() {
               ) : (
                 myConflicts.map((c) => (
                   <div key={c.pathKey} className="conflict-block">
-                    <p className="muted">{c.pathKey}</p>
                     <div className="row">
                       {c.animalInstanceIds.map((id) => {
                         const card = myForest.find((f) => f.instanceId === id);
                         return (
-                          <button
+                          <motion.button
                             key={id}
                             type="button"
                             className="btn"
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
                             onClick={() =>
                               sendIntent({
                                 type: "resolveConflict",
@@ -234,7 +271,7 @@ export function RoomPage() {
                             }
                           >
                             {t("keepAnimal")} {card?.cardId ?? id}
-                          </button>
+                          </motion.button>
                         );
                       })}
                     </div>
@@ -250,33 +287,51 @@ export function RoomPage() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35 }}
             >
+              <TurnBanner
+                active={match.phase === "turn"}
+                isMyTurn={Boolean(isMyTurn || pendingMine)}
+                playerName={turnPlayer?.name}
+              />
+
               <p className="muted">
-                {t("round")} {match.round} · {match.phase} · {t("firstPlayer")}{" "}
+                {t("round")} {match.round} · {t("firstPlayer")}{" "}
                 {match.firstPlayerSeat + 1}
               </p>
-              <p>
-                {pendingMine
-                  ? pendingMine.kind === "lair"
-                    ? t("pendingLair")
-                    : t("pendingWater")
-                  : isMyTurn
-                    ? t("yourTurn")
-                    : t("waitingTurn")}
-              </p>
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={
+                    pendingMine?.kind ??
+                    (isMyTurn ? "mine" : "wait")
+                  }
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                >
+                  {pendingMine
+                    ? pendingMine.kind === "lair"
+                      ? t("pendingLair")
+                      : t("pendingWater")
+                    : isMyTurn
+                      ? t("yourTurn")
+                      : t("waitingTurn")}
+                </motion.p>
+              </AnimatePresence>
 
               <h2>{t("market")}</h2>
               <MarketRow
                 market={match.market}
                 selected={selectedSlot}
                 selectable={Boolean(isMyTurn && !pendingMine)}
+                dealKey={match.round}
                 onSelect={(slot) => setSelectedSlot(slot)}
               />
 
               {isMyTurn && !pendingMine ? (
-                <div className="row" style={{ marginTop: "0.75rem" }}>
-                  <button
+                <div className="place-toolbar">
+                  <motion.button
                     type="button"
                     className="btn ghost"
+                    whileTap={{ rotate: 15 }}
                     onClick={() =>
                       setRotation(
                         ROTATIONS[
@@ -286,12 +341,35 @@ export function RoomPage() {
                     }
                   >
                     {t("rotate")} ({rotation}°)
-                  </button>
-                  {selectedSlot ? (
-                    <span className="muted">
-                      {t("selectedSlot")}: {selectedSlot} — {t("placeHint")}
-                    </span>
+                  </motion.button>
+                  {preview ? (
+                    <motion.div
+                      className="rotate-preview"
+                      layout
+                      initial={{ opacity: 0, scale: 0.85 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                    >
+                      <span className="muted">{t("previewHint")}</span>
+                      <PlaceholderCard
+                        cardId={preview.cardId}
+                        kind={preview.kind}
+                        rotation={preview.rotation}
+                        compact
+                      />
+                    </motion.div>
                   ) : null}
+                  <AnimatePresence>
+                    {illegalNote ? (
+                      <motion.span
+                        className="error"
+                        initial={{ opacity: 0, x: -6 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0 }}
+                      >
+                        {t("illegalPlace")}
+                      </motion.span>
+                    ) : null}
+                  </AnimatePresence>
                 </div>
               ) : null}
 
@@ -299,8 +377,17 @@ export function RoomPage() {
               <ForestGrid
                 forest={myForest}
                 legal={legal}
+                preview={preview}
+                justPlacedId={justPlacedId}
                 onPlace={(cell) => {
                   if (!selectedSlot) return;
+                  const ok = legal.some(
+                    (l) => l.r === cell.r && l.c === cell.c,
+                  );
+                  if (!ok) {
+                    showIllegalNote();
+                    return;
+                  }
                   sendIntent({
                     type: "pickAndPlace",
                     slot: selectedSlot,
@@ -337,10 +424,31 @@ export function RoomPage() {
                       }
                     : undefined
                 }
+                onIllegal={showIllegalNote}
               />
             </motion.div>
           ) : (
-            <p className="muted">{t("placeholderArt")}</p>
+            <motion.div
+              key="lobby-aside"
+              className="lobby-aside"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              <motion.p
+                className="lobby-ready"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                {t("lobbyReady")}
+              </motion.p>
+              <motion.div
+                className="lobby-pulse"
+                animate={{ opacity: [0.35, 0.7, 0.35], scale: [0.98, 1.02, 0.98] }}
+                transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                aria-hidden
+              />
+            </motion.div>
           )}
         </AnimatePresence>
       </section>

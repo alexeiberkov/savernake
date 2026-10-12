@@ -232,6 +232,12 @@ input {
   gap: 0.6rem;
 }
 
+.market-slot-wrap {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
 .market-slot,
 .forest-cell {
   aspect-ratio: 1;
@@ -241,11 +247,13 @@ input {
   display: grid;
   place-items: center;
   text-align: center;
-  padding: 0.4rem;
+  padding: 0.35rem;
   font-size: 0.75rem;
   color: var(--text-muted);
   cursor: default;
   width: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
 button.market-slot,
@@ -329,4 +337,159 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
 .error {
   color: var(--danger);
   font-size: 0.9rem;
+}
+
+.ph-card {
+  width: 100%;
+  height: 100%;
+  min-height: 4.5rem;
+  border-radius: 8px;
+  display: grid;
+  place-content: center;
+  gap: 0.15rem;
+  position: relative;
+  background:
+    linear-gradient(145deg, rgba(120, 150, 100, 0.55), rgba(45, 70, 52, 0.85));
+  border: 1px solid rgba(232, 192, 122, 0.35);
+  color: var(--text);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.ph-card.animal {
+  background:
+    linear-gradient(145deg, rgba(150, 110, 70, 0.55), rgba(70, 45, 30, 0.85));
+}
+
+.ph-card.compact {
+  min-height: 0;
+  aspect-ratio: 1;
+}
+
+.ph-kind {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber-bright);
+}
+
+.ph-id {
+  font-size: 0.78rem;
+}
+
+.ph-mark {
+  position: absolute;
+  inset: 18% 22%;
+  border: 1px solid rgba(243, 235, 224, 0.12);
+  border-radius: 40% 60% 55% 45%;
+  pointer-events: none;
+}
+
+.turn-banner {
+  display: inline-flex;
+  margin-bottom: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 220, 196, 0.2);
+  background: rgba(20, 36, 28, 0.75);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.turn-banner.mine {
+  color: #2a1c10;
+  background: linear-gradient(180deg, var(--amber-bright), var(--amber));
+  border-color: transparent;
+}
+
+.place-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.85rem;
+}
+
+.rotate-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.rotate-preview .ph-card {
+  width: 3.4rem;
+  height: 3.4rem;
+  min-height: 0;
+}
+
+.forest-card-slot,
+.forest-ghost {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.forest-cell.illegal {
+  border-color: var(--danger);
+}
+
+.muted.tiny {
+  font-size: 0.65rem;
+}
+
+.score-reveal .winner-line {
+  font-size: 1.15rem;
+  margin: 0.35rem 0 1rem;
+}
+
+.score-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.score-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.score-list li.is-winner {
+  border: 1px solid rgba(232, 192, 122, 0.55);
+  background: rgba(212, 161, 90, 0.14);
+}
+
+.lobby-aside {
+  min-height: 12rem;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.lobby-ready {
+  margin: 0;
+  max-width: 22rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.lobby-pulse {
+  width: 7rem;
+  height: 7rem;
+  margin: 0 auto;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 35%, rgba(232, 192, 122, 0.35), transparent 55%),
+    rgba(111, 143, 106, 0.2);
+}
+
+.table-layout.lobby-mode .play-panel {
+  border-style: dashed;
 }
