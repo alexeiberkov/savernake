@@ -182,10 +182,13 @@ export function RoomPage() {
   const selectedKind = selectedMarket?.kind ?? null;
 
   const legal =
-    isMyTurn && !pendingMine && selectedSlot
+    isMyTurn && !pendingMine && selectedSlot && selectedMarket?.cardId && selectedKind
       ? legalCells(myForest, {
           strictPathExclusiveDuringPlace: match.strictPathExclusiveDuringPlace,
           placingAnimal: selectedKind === "animal",
+          cardId: selectedMarket.cardId,
+          kind: selectedKind,
+          rotation,
         })
       : [];
 

@@ -33,6 +33,9 @@ export function enumerateLegalPickAndPlace(
       const cells = legalCells(player.forest, {
         strictPathExclusiveDuringPlace: match.strictPathExclusiveDuringPlace,
         placingAnimal: slot.kind === "animal",
+        cardId: slot.cardId,
+        kind: slot.kind,
+        rotation,
       });
       for (const cell of cells) {
         options.push({

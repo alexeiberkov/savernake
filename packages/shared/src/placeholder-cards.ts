@@ -35,9 +35,29 @@ export const PLACEHOLDER_PATHS: PathCardDef[] = Array.from({ length: 45 }, (_, i
 
 export { PLACEHOLDER_ANIMALS };
 
+/**
+ * Not in the deal decks — used only for topology / compliance tests
+ * (GAME_RULES §8 branching / crossing).
+ */
+export const TEST_ILLEGAL_PATHS: PathCardDef[] = [
+  {
+    id: "path_branch_test",
+    kind: "path",
+    connections: ["N", "E", "S"],
+    foods: ["berries"],
+  },
+  {
+    id: "path_cross_test",
+    kind: "path",
+    connections: ["N", "E", "S", "W"],
+    foods: ["worms"],
+  },
+];
+
 export function cardDefById(id: string) {
   return (
     PLACEHOLDER_PATHS.find((c) => c.id === id) ??
-    PLACEHOLDER_ANIMALS.find((c) => c.id === id)
+    PLACEHOLDER_ANIMALS.find((c) => c.id === id) ??
+    TEST_ILLEGAL_PATHS.find((c) => c.id === id)
   );
 }

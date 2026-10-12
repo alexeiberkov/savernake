@@ -1,5 +1,10 @@
-import { cellKey, findMultiAnimalPaths, forestMap } from "./path-graph.js";
-import type { Cell, PlacedCard } from "./types.js";
+import {
+  cellKey,
+  findMultiAnimalPaths,
+  forestMap,
+  pathTopologyViolation,
+} from "./path-graph.js";
+import type { Cell, PlacedCard, Rotation } from "./types.js";
 
 const ORTHO = [
   { dr: -1, dc: 0 },
@@ -12,8 +17,16 @@ export const MAX_FOREST = 4;
 
 export type PlaceError = "OUT_OF_BOUNDS" | "ILLEGAL_PLACE";
 
+export type PlaceOpts = {
+  strictPathExclusiveDuringPlace: boolean;
+  placingAnimal: boolean;
+  /** Card being placed — enables trail topology checks (GAME_RULES §27). */
+  cardId?: string;
+  rotation?: Rotation;
+  kind?: "path" | "animal";
+};
+
 export type ForestExtent = {
-  /** Inclusive min/max of occupied cells; null if empty. */
   minR: number;
   maxR: number;
   minC: number;
@@ -71,16 +84,13 @@ function spanExceedsMax(cells: Cell[]): boolean {
 }
 
 /**
- * Growing 4×4 forest (Word-table style):
- * - Empty forest: only (0,0)
- * - Otherwise: empty cells inside current bbox, plus one-cell expansion
- *   on any edge while rows/cols &lt; 4
- * - Hard cap: bounding box never exceeds 4×4
+ * Growing 4×4 forest (GAME_RULES §6–§7):
+ * adjacency, bbox ≤ 4×4, optional trail topology for the card being placed.
  */
 export function validatePlacement(
   forest: PlacedCard[],
   cell: Cell,
-  opts: { strictPathExclusiveDuringPlace: boolean; placingAnimal: boolean },
+  opts: PlaceOpts,
 ): PlaceError | null {
   const map = forestMap(forest);
   if (map.has(cellKey(cell.r, cell.c))) {
@@ -101,25 +111,40 @@ export function validatePlacement(
   );
   if (!adjacent) return "ILLEGAL_PLACE";
 
-  if (opts.strictPathExclusiveDuringPlace && opts.placingAnimal) {
+  if (opts.cardId && opts.kind && opts.rotation !== undefined) {
     const probe: PlacedCard = {
       instanceId: "__probe__",
-      cardId: "animal_hedgehog",
+      cardId: opts.cardId,
+      kind: opts.kind,
+      rotation: opts.rotation,
+      cell,
+      lairTokens: 0,
+      waterBonus: {},
+    };
+    const probeForest = [...forest, probe];
+    if (pathTopologyViolation(probeForest)) {
+      return "ILLEGAL_PLACE";
+    }
+  }
+
+  if (opts.strictPathExclusiveDuringPlace && opts.placingAnimal) {
+    const probe: PlacedCard = {
+      instanceId: "__probe_animal__",
+      cardId: opts.cardId ?? "animal_hedgehog",
       kind: "animal",
-      rotation: 0,
+      rotation: opts.rotation ?? 0,
       cell,
       lairTokens: 0,
       waterBonus: {},
     };
     const conflicts = findMultiAnimalPaths([...forest, probe]);
-    if (conflicts.some((c) => c.animalInstanceIds.includes("__probe__"))) {
+    if (conflicts.some((c) => c.animalInstanceIds.includes("__probe_animal__"))) {
       return "ILLEGAL_PLACE";
     }
   }
   return null;
 }
 
-/** Candidate cells to scan: current bbox ±1 for growth. */
 function candidateCells(forest: PlacedCard[]): Cell[] {
   if (!forest.length) return [{ r: 0, c: 0 }];
   const ext = forestExtent(forest)!;
@@ -136,19 +161,12 @@ function candidateCells(forest: PlacedCard[]): Cell[] {
   return cells;
 }
 
-export function legalCells(
-  forest: PlacedCard[],
-  opts: { strictPathExclusiveDuringPlace: boolean; placingAnimal: boolean },
-): Cell[] {
+export function legalCells(forest: PlacedCard[], opts: PlaceOpts): Cell[] {
   return candidateCells(forest).filter(
     (cell) => validatePlacement(forest, cell, opts) === null,
   );
 }
 
-/**
- * Place a card and renormalize so the bbox origin is (0,0).
- * Returns the updated forest and the placed card's final cell.
- */
 export function placeCardInForest(
   forest: PlacedCard[],
   card: Omit<PlacedCard, "cell"> & { cell: Cell },

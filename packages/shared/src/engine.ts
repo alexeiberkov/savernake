@@ -349,6 +349,9 @@ export class GameEngine {
     const placeErr = validatePlacement(player.forest, intent.cell, {
       strictPathExclusiveDuringPlace: match.strictPathExclusiveDuringPlace,
       placingAnimal: marketSlot.kind === "animal",
+      cardId: marketSlot.cardId,
+      kind: marketSlot.kind,
+      rotation: intent.rotation,
     });
     if (placeErr === "OUT_OF_BOUNDS") {
       return { ok: false, error: "OUT_OF_BOUNDS", message: "Outside 4×4" };
