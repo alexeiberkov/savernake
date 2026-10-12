@@ -82,6 +82,11 @@ const en = {
   roosterTitle: "Rooster — first player",
   advisorCursorWater: "Place water token",
   advisorCursorLair: "Place lair token",
+  copyState: "Copy state",
+  copyStateFallback: "Clipboard blocked — select and copy the JSON below.",
+  close: "Close",
+  cardsStayPlaced:
+    "Cards already in your forest stay put — place the selected market card on a glowing empty cell.",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -169,6 +174,11 @@ const ru: Record<MessageKey, string> = {
   roosterTitle: "Петушок — первый игрок",
   advisorCursorWater: "Положить фишку воды",
   advisorCursorLair: "Положить фишку норы (пещерка)",
+  copyState: "Скопировать состояние",
+  copyStateFallback: "Буфер обмена недоступен — выделите и скопируйте JSON ниже.",
+  close: "Закрыть",
+  cardsStayPlaced:
+    "Карты в лесу уже нельзя переставлять — кладите выбранную карту рынка на светящуюся пустую клетку.",
 };
 
 export const messages: Record<Locale, Record<MessageKey, string>> = { en, ru };

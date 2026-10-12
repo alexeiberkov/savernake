@@ -39,7 +39,7 @@ export function MarketRow({
         return (
           <div key={slot.slot} className="market-slot-wrap">
             <span className="slot-label">{slot.slot}</span>
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="sync">
               {slot.cardId && slot.kind ? (
                 <motion.button
                   key={`${dealKey}-${slot.cardId}`}
@@ -49,28 +49,25 @@ export function MarketRow({
                   }`}
                   disabled={!canPick}
                   onClick={() => canPick && onSelect?.(slot.slot)}
-                  initial={{ y: -28, opacity: 0, rotate: -6, scale: 0.86 }}
+                  initial={{ y: -20, opacity: 0, scale: 0.92 }}
                   animate={{
-                    y: selected === slot.slot ? -6 : 0,
+                    y: selected === slot.slot ? -4 : 0,
                     opacity: 1,
-                    rotate: 0,
-                    scale: selected === slot.slot ? 1.06 : 1,
+                    scale: selected === slot.slot ? 1.04 : 1,
                   }}
                   exit={{
-                    y: 36,
                     opacity: 0,
-                    scale: 0.75,
-                    rotate: 8,
-                    transition: { duration: 0.28, ease: "easeIn" },
+                    scale: 0.9,
+                    transition: { duration: 0.18 },
                   }}
                   transition={{
-                    delay: index * 0.07,
+                    delay: index * 0.05,
                     type: "spring",
                     stiffness: 280,
-                    damping: 20,
+                    damping: 22,
                   }}
-                  whileHover={canPick ? { y: -4 } : undefined}
-                  whileTap={canPick ? { scale: 0.96 } : undefined}
+                  whileHover={canPick ? { y: -3 } : undefined}
+                  whileTap={canPick ? { scale: 0.97 } : undefined}
                   aria-label={`${t("drawingCard")} ${cardLabel}`}
                 >
                   <PlaceholderCard

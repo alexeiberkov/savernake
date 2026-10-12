@@ -122,6 +122,49 @@ describe("GAME_RULES compliance", () => {
     );
   });
 
+  it("empty cell immediately left of animal is legal when bbox allows", () => {
+    const forest: PlacedCard[] = [
+      {
+        instanceId: "a",
+        cardId: "animal_fox",
+        kind: "animal",
+        rotation: 0,
+        cell: { r: 0, c: 1 },
+        lairTokens: 2,
+        waterBonus: { berries: 1, worms: 1, eggs: 1 },
+      },
+      {
+        instanceId: "p1",
+        cardId: "path_02",
+        kind: "path",
+        rotation: 0,
+        cell: { r: 0, c: 2 },
+        lairTokens: 0,
+        waterBonus: {},
+      },
+      {
+        instanceId: "p2",
+        cardId: "path_03",
+        kind: "path",
+        rotation: 0,
+        cell: { r: 1, c: 1 },
+        lairTokens: 0,
+        waterBonus: {},
+      },
+    ];
+    const opts = {
+      ...placeOpts,
+      cardId: "path_37",
+      kind: "path" as const,
+      rotation: 0 as const,
+    };
+    assert.equal(validatePlacement(forest, { r: 0, c: 0 }, opts), null);
+    assert.ok(
+      legalCells(forest, opts).some((c) => c.r === 0 && c.c === 0),
+      "left-of-animal must be in legalCells",
+    );
+  });
+
   it("4×4 boundary hard cap", () => {
     const forest: PlacedCard[] = Array.from({ length: 4 }, (_, r) => ({
       instanceId: `r${r}`,

@@ -17,12 +17,13 @@ import { TurnBanner } from "../components/TurnBanner";
 import { TurnTimer } from "../components/TurnTimer";
 import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
+import { CopyDebugState } from "../components/CopyDebugState";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
 export function RoomPage() {
   const { code } = useParams();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { snapshot, error, startGame, setTurnTimer, sendIntent, you } =
     useRoomSession(code);
   const [copied, setCopied] = useState(false);
@@ -443,7 +444,6 @@ export function RoomPage() {
                   {preview ? (
                     <motion.div
                       className="rotate-preview"
-                      layout
                       initial={{ opacity: 0, scale: 0.85 }}
                       animate={{ opacity: 1, scale: 1 }}
                     >
@@ -456,6 +456,11 @@ export function RoomPage() {
                         showPopover={false}
                       />
                     </motion.div>
+                  ) : null}
+                  {selectedSlot ? (
+                    <p className="muted" style={{ flexBasis: "100%", margin: 0 }}>
+                      {t("cardsStayPlaced")}
+                    </p>
                   ) : null}
                   <AnimatePresence>
                     {illegalNote ? (
@@ -473,6 +478,17 @@ export function RoomPage() {
               ) : null}
 
               <h2 style={{ marginTop: "1.25rem" }}>{t("yourForest")}</h2>
+              <CopyDebugState
+                snapshot={snapshot}
+                youPlayerId={snapshot.youPlayerId}
+                selectedSlot={selectedSlot}
+                rotation={rotation}
+                waterAnimalId={waterAnimalId}
+                legal={legal}
+                locale={locale}
+                connectError={error}
+                connected={Boolean(you?.connected)}
+              />
               {pendingMine?.kind === "water" ? (
                 <div
                   className="water-product-picker"

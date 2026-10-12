@@ -168,7 +168,7 @@ export function ForestGrid({
             }}
             animate={
               shaking
-                ? { x: [0, -6, 6, -4, 4, 0], backgroundColor: "rgba(196,92,74,0.35)" }
+                ? { x: [0, -6, 6, -4, 4, 0] }
                 : isLegal
                   ? {
                       x: 0,
@@ -189,7 +189,7 @@ export function ForestGrid({
             }
             whileHover={interactive ? { scale: 1.03 } : undefined}
           >
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="sync">
               {card ? (
                 <motion.div
                   key={card.instanceId}

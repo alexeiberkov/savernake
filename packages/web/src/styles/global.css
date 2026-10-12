@@ -640,6 +640,44 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
 
 .forest-cell.illegal {
   border-color: var(--danger);
+  background: rgba(196, 92, 74, 0.35) !important;
+}
+
+.debug-copy-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+}
+
+.debug-toast {
+  font-size: 0.85rem;
+  color: var(--amber-bright);
+}
+
+.debug-fallback {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--fog);
+  background: rgba(10, 20, 16, 0.85);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.debug-fallback textarea {
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(232, 220, 196, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem;
+  resize: vertical;
 }
 
 .muted.tiny {

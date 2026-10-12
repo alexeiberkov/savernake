@@ -51,7 +51,6 @@ export function PlaceholderCard({
       } ${className}`}
       animate={{ rotate: rotation }}
       transition={{ type: "spring", stiffness: 220, damping: 18 }}
-      layout
       aria-label={kind === "animal" ? label : `${t("placeholderArt")} ${cardId}`}
     >
       {kind === "animal" && artSlug ? (
