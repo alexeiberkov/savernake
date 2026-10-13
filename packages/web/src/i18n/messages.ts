@@ -88,6 +88,12 @@ const en = {
   close: "Close",
   cardsStayPlaced:
     "Cards already in your forest stay put — place the selected market card on a glowing empty cell.",
+  pathDeck: "Path deck",
+  pathCardsLeft: "path cards left",
+  roundsLeft: "rounds left",
+  pathRoundsLeft: "refills left (paths)",
+  waterBank: "Water tokens",
+  burrowBank: "Burrow tokens",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -181,6 +187,12 @@ const ru: Record<MessageKey, string> = {
   close: "Закрыть",
   cardsStayPlaced:
     "Карты в лесу уже нельзя переставлять — кладите выбранную карту рынка на светящуюся пустую клетку.",
+  pathDeck: "Колода тропинок",
+  pathCardsLeft: "карт тропинок",
+  roundsLeft: "ходов",
+  pathRoundsLeft: "раздач (тропинки)",
+  waterBank: "Жетоны воды",
+  burrowBank: "Жетоны норы",
 };
 
 export const messages: Record<Locale, Record<MessageKey, string>> = { en, ru };

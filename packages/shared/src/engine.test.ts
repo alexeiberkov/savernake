@@ -366,7 +366,7 @@ describe("pickAndPlace + advisors", () => {
     assert.equal(dup.ok, false);
   });
 
-  it("stacks unlimited caves on one animal", () => {
+  it("stacks multiple caves on one animal (bank still available)", () => {
     let state = startTwoPlayer("seed-multi-cave");
     const actor = state.players.find((p) => p.seat === state.turnSeat)!;
     const animalId = actor.forest[0]!.instanceId;

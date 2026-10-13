@@ -77,7 +77,7 @@ export type PlacedCard = {
   kind: CardKind;
   rotation: Rotation;
   cell: Cell;
-  /** Cave / пещерка count — each +1 capacity; unlimited per animal. */
+  /** Cave / пещерка count on this animal — each +1 capacity (bank-limited globally). */
   lairTokens: number;
   /**
    * Droplet / капелька per product: at most one per food on this animal.
@@ -118,8 +118,10 @@ export type MatchDeckSizes = {
   pathDeck: number;
   animalDeck: number;
   discard: number;
-  /** Remaining water droplets in supply (caves unlimited). */
+  /** Remaining water droplets in soft bank (15). */
   waterSupply: number;
+  /** Remaining burrow/lair tokens in soft bank (15). */
+  lairSupply: number;
   /** Top of each pile when present (optional debug hint). */
   pathDeckTop: string | null;
   animalDeckTop: string | null;

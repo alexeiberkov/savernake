@@ -1,3 +1,7 @@
+import {
+  LAIR_TOKEN_BANK,
+  WATER_TOKEN_BANK,
+} from "./component-counts.js";
 import { cardDefById, PLACEHOLDER_ANIMALS, PLACEHOLDER_PATHS } from "./placeholder-cards.js";
 import { findMultiAnimalPaths } from "./path-graph.js";
 import { placeCardInForest, validatePlacement } from "./placement.js";
@@ -77,9 +81,9 @@ export function createLobbyMatch(seed: string): InternalMatch {
     pathDeck: [],
     animalDeck: [],
     discard: [],
-    /** Caves are unlimited per Aliaksei — supply is not a hard gate. */
-    lairSupply: Number.MAX_SAFE_INTEGER,
-    waterSupply: 15,
+    /** Soft banks (15) — GAME_RULES silent; cannot place when empty. */
+    lairSupply: LAIR_TOKEN_BANK,
+    waterSupply: WATER_TOKEN_BANK,
   };
 }
 
@@ -88,7 +92,7 @@ export function toPublicMatch(match: InternalMatch): MatchState {
     pathDeck,
     animalDeck,
     discard,
-    lairSupply: _l,
+    lairSupply,
     waterSupply,
     ...pub
   } = match;
@@ -99,6 +103,7 @@ export function toPublicMatch(match: InternalMatch): MatchState {
       animalDeck: animalDeck.length,
       discard: discard.length,
       waterSupply,
+      lairSupply,
       pathDeckTop: pathDeck[0] ?? null,
       animalDeckTop: animalDeck[0] ?? null,
     },
@@ -314,6 +319,8 @@ export class GameEngine {
       pathDeck,
       animalDeck,
       discard: [],
+      lairSupply: LAIR_TOKEN_BANK,
+      waterSupply: WATER_TOKEN_BANK,
       players,
       firstPlayerSeat,
       turnSeat: firstPlayerSeat,
@@ -410,7 +417,10 @@ export class GameEngine {
       return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
     }
     if (intent.slot === "armadillo") {
-      // Unlimited caves — always place a cave upgrade on an animal.
+      // Soft bank of 15 — skip placement when empty (GAME_RULES silent on bank).
+      if (next.lairSupply <= 0) {
+        return { ok: true, state: finishTurnAfterAdvisor(next, player.seat) };
+      }
       return {
         ok: true,
         state: {
@@ -449,6 +459,13 @@ export class GameEngine {
     }
     if (match.pendingAdvisor.playerId !== playerId) {
       return { ok: false, error: "NOT_YOUR_TURN", message: "Not your advisor" };
+    }
+    if (match.lairSupply <= 0) {
+      return {
+        ok: false,
+        error: "INVALID_TARGET",
+        message: "No burrow tokens left in supply",
+      };
     }
     const player = match.players.find((p) => p.id === playerId);
     if (!player) {

@@ -422,6 +422,8 @@ export function RoomPage() {
                 selected={selectedSlot}
                 selectable={Boolean(isMyTurn && !pendingMine)}
                 dealKey={match.round}
+                deckSizes={match.deckSizes}
+                players={match.players}
                 onSelect={(slot) => setSelectedSlot(slot)}
               />
 
