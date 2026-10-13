@@ -60,4 +60,4 @@ pnpm typecheck / pnpm build → green
 2. **Geometric crossing** — enforced via illegal port counts (3 = branch, 4 = cross) and trail degree >2. Full pixel-geometry cross not modeled (placeholder cards are 1–2 port polylines).
 3. **2p advanced mode (§23)** — not implemented; standard 4×4 only.
 4. **Physical card catalog** — stats/geometry still placeholders until box verification.
-5. **Water token supply (15)** — not specified in GAME_RULES.md; kept as soft bank limit from earlier component notes.
+5. **Water / burrow token supply (15 each)** — not specified in GAME_RULES.md; soft banks deplete and block placement when empty (see `docs/component-inventory.md`).
