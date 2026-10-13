@@ -257,6 +257,19 @@ input {
   }
 }
 
+.market-board {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 5.5rem) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .market-board {
+    grid-template-columns: 1fr;
+  }
+}
+
 .market-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -267,6 +280,135 @@ input {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
+}
+
+.path-deck-stack {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+  padding-top: 0.15rem;
+}
+
+.path-deck-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.path-deck-body {
+  width: 100%;
+  max-width: 5.2rem;
+}
+
+.path-deck-layers {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  min-height: 5.5rem;
+}
+
+.path-deck-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: 7px;
+  border: 1px solid rgba(232, 192, 122, 0.35);
+  background:
+    linear-gradient(155deg, rgba(90, 120, 70, 0.75), rgba(35, 55, 40, 0.92));
+  transform: translate(
+      calc(var(--i) * 1.2px),
+      calc((var(--layers) - var(--i) - 1) * -1.8px)
+    );
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.path-deck-face {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 7px;
+  border: 1px solid rgba(232, 192, 122, 0.55);
+  background:
+    radial-gradient(80% 70% at 50% 30%, rgba(255, 210, 140, 0.18), transparent),
+    linear-gradient(160deg, #4a6a42, #243828);
+  display: grid;
+  place-content: center;
+  gap: 0.1rem;
+  text-align: center;
+  padding: 0.35rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+
+.path-deck-rounds {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height: 1;
+  color: var(--amber-bright);
+}
+
+.path-deck-rounds-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: rgba(243, 235, 224, 0.85);
+  text-transform: lowercase;
+}
+
+.path-deck-cards {
+  margin-top: 0.2rem;
+  font-size: 0.55rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.path-deck-empty {
+  aspect-ratio: 3 / 4;
+  min-height: 5.5rem;
+  border-radius: 7px;
+  border: 1px dashed rgba(232, 220, 196, 0.25);
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.token-bank {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.token-bank-count {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.token-bank-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  min-height: 1.1rem;
+}
+
+.token-chip {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.token-chip.water {
+  background: radial-gradient(circle at 35% 30%, #b8e8f8, #4a9ec4 70%, #2a6a88);
+  border: 1px solid rgba(30, 80, 110, 0.45);
+}
+
+.token-chip.lair {
+  width: 0.58rem;
+  height: 0.48rem;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #d4b896, #8a6844);
+  border: 1px solid rgba(70, 45, 28, 0.5);
 }
 
 .market-slot,

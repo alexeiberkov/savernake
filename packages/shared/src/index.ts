@@ -1,4 +1,5 @@
 export * from "./types.js";
+export * from "./component-counts.js";
 export * from "./animal-catalog.js";
 export * from "./placeholder-cards.js";
 export * from "./path-graph.js";
