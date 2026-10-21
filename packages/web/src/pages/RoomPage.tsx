@@ -4,6 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   legalCells,
   openWaterFoods,
+  remainingRoundsFromForests,
+  remainingRoundsFromPathDeck,
   type AdvisorSlot,
   type Food,
   type Rotation,
@@ -13,10 +15,12 @@ import { joinRoomApi, useRoomSession } from "../hooks/useRoomSession";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PlaceholderCard } from "../components/PlaceholderCard";
+import { PathDeckStack } from "../components/PathDeckStack";
 import { TurnBanner } from "../components/TurnBanner";
 import { TurnTimer } from "../components/TurnTimer";
 import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
+import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
 import { CopyDebugState } from "../components/CopyDebugState";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
@@ -35,6 +39,8 @@ export function RoomPage() {
   const [waterAnimalId, setWaterAnimalId] = useState<string | null>(null);
   const [justPlacedId, setJustPlacedId] = useState<string | null>(null);
   const [illegalNote, setIllegalNote] = useState(false);
+  const [finishedAnimsDone, setFinishedAnimsDone] = useState(0);
+  const prevFinishedPhase = useRef(false);
   const prevForestLen = useRef(0);
   const illegalTimer = useRef<number | null>(null);
 
@@ -48,6 +54,15 @@ export function RoomPage() {
       if (illegalTimer.current) window.clearTimeout(illegalTimer.current);
     };
   }, []);
+
+  // Reset scoring animation counter when leaving the finished phase (restart).
+  useEffect(() => {
+    const isFinished = snapshot?.match.phase === "finished";
+    if (prevFinishedPhase.current && !isFinished) {
+      setFinishedAnimsDone(0);
+    }
+    prevFinishedPhase.current = isFinished ?? false;
+  }, [snapshot?.match.phase]);
 
   useEffect(() => {
     const len = you?.forest.length ?? 0;
@@ -195,6 +210,18 @@ export function RoomPage() {
 
   const myConflicts = match.conflicts.filter((c) => c.playerId === you?.id);
   const turnPlayer = match.players.find((p) => p.seat === match.turnSeat);
+  const otherPlayers = match.players.filter((p) => p.id !== snapshot.youPlayerId);
+
+  const sortedPlayersForScoring = (() => {
+    if (match.phase !== "finished") return [];
+    const me = match.players.find((p) => p.id === snapshot.youPlayerId);
+    const rest = match.players.filter((p) => p.id !== snapshot.youPlayerId);
+    return me ? [me, ...rest] : [...match.players];
+  })();
+
+  const allFinishedAnimsDone =
+    match.phase === "finished" &&
+    finishedAnimsDone >= match.players.length;
 
   const preview =
     selectedMarket?.cardId && selectedKind
@@ -224,7 +251,8 @@ export function RoomPage() {
     <div
       className={`table-layout${inLobby ? " lobby-mode" : ""}${advisorCursorClass}`}
     >
-      <section className="panel">
+      <section className="panel table-bar">
+        <div className="table-bar-meta">
         <h2>
           {inLobby ? t("lobby") : t("table")} · {snapshot.roomCode}
         </h2>
@@ -259,7 +287,7 @@ export function RoomPage() {
         <div className="timer-settings">
           <label>
             {t("turnTimer")}
-            {inLobby && you?.isHost ? (
+            {inLobby && you?.isHost && !snapshot.settings.debug ? (
               <input
                 type="number"
                 min={0}
@@ -271,7 +299,8 @@ export function RoomPage() {
             ) : (
               <span className="muted">
                 {" "}
-                {snapshot.settings.turnTimerSeconds === 0
+                {snapshot.settings.debug ||
+                snapshot.settings.turnTimerSeconds === 0
                   ? t("turnTimerOff")
                   : `${snapshot.settings.turnTimerSeconds}s`}
               </span>
@@ -281,8 +310,10 @@ export function RoomPage() {
             <p className="muted">{t("turnTimerHint")}</p>
           ) : null}
         </div>
+        </div>
 
-        <h3 style={{ marginTop: "1.25rem" }}>{t("players")}</h3>
+        <div className="table-bar-players">
+        <h3>{t("players")}</h3>
         <ul className="player-list">
           {match.players.map((p) => (
             <motion.li
@@ -295,7 +326,7 @@ export function RoomPage() {
               }
             >
               <span className="player-name-row">
-                {p.name}{" "}
+                {p.isBot ? t("computer") : p.name}{" "}
                 {!inLobby && p.seat === match.firstPlayerSeat ? (
                   <RoosterMark />
                 ) : null}
@@ -306,14 +337,32 @@ export function RoomPage() {
                 {t("cards")} {p.cardCount}/16
                 {typeof p.score === "number" ? ` · ${t("score")} ${p.score}` : ""}
                 {" · "}
-                {p.connected ? t("connected") : t("disconnected")}
+                {p.isBot
+                  ? t("computerStatus")
+                  : p.connected
+                    ? t("connected")
+                    : t("disconnected")}
               </span>
             </motion.li>
           ))}
         </ul>
+        </div>
       </section>
 
       <section className="panel play-panel">
+        {snapshot.settings.debug &&
+        match.phase !== "lobby" &&
+        match.phase !== "finished" ? (
+          <div className="debug-finish">
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => sendIntent({ type: "finishGame" })}
+            >
+              {t("finishGame")}
+            </button>
+          </div>
+        ) : null}
         <AnimatePresence mode="wait">
           {match.phase === "finished" ? (
             <motion.div
@@ -322,13 +371,41 @@ export function RoomPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
             >
-              <ScoreReveal
-                players={match.players}
-                winnerPlayerId={match.winnerPlayerId}
-              />
-              <div style={{ marginTop: "1.25rem" }}>
-                <ForestGrid forest={myForest} />
-              </div>
+              <AnimatePresence>
+                {allFinishedAnimsDone ? (
+                  <motion.div
+                    key="score-reveal"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ marginBottom: "1.5rem" }}
+                  >
+                    <ScoreReveal
+                      players={match.players}
+                      winnerPlayerId={match.winnerPlayerId}
+                      onPlayAgain={() =>
+                        sendIntent({ type: "restartGame" })
+                      }
+                    />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+              {sortedPlayersForScoring.map((p, i) => (
+                <div key={p.id} style={{ marginTop: i > 0 ? "1.75rem" : 0 }}>
+                  <AnimatedForestGrid
+                    forest={p.forest}
+                    playerSeat={p.seat}
+                    firstPlayerSeat={match.firstPlayerSeat}
+                    label={
+                      p.id === snapshot.youPlayerId
+                        ? t("yourForest")
+                        : p.isBot
+                          ? t("computer")
+                          : p.name
+                    }
+                    onDone={() => setFinishedAnimsDone((n) => n + 1)}
+                  />
+                </div>
+              ))}
             </motion.div>
           ) : match.phase === "conflictResolve" ? (
             <motion.div
@@ -369,6 +446,17 @@ export function RoomPage() {
                 ))
               )}
               <ForestGrid forest={myForest} />
+              {otherPlayers.map((p) => (
+                <div key={p.id} style={{ marginTop: "1.75rem" }}>
+                  <h3 className="muted" style={{ margin: "0 0 0.5rem" }}>
+                    {p.isBot ? t("computer") : p.name}
+                  </h3>
+                  <ForestGrid
+                    forest={p.forest}
+                    label={p.isBot ? t("computer") : p.name}
+                  />
+                </div>
+              ))}
             </motion.div>
           ) : !inLobby ? (
             <motion.div
@@ -377,45 +465,65 @@ export function RoomPage() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35 }}
             >
-              <TurnBanner
-                active={match.phase === "turn"}
-                isMyTurn={Boolean(isMyTurn || pendingMine)}
-                playerName={turnPlayer?.name}
-              />
-              <TurnTimer
-                deadlineMs={snapshot.turnDeadlineMs}
-                timerSeconds={snapshot.settings.turnTimerSeconds}
-                notice={snapshot.lastAutoPlayNotice}
-                urgencyForLocalPlayer={localTurnActive}
-              />
+              <div className="play-status">
+                <div>
+                  <TurnBanner
+                    active={match.phase === "turn"}
+                    isMyTurn={Boolean(isMyTurn || pendingMine)}
+                    playerName={turnPlayer?.name}
+                  />
+                  <TurnTimer
+                    deadlineMs={snapshot.turnDeadlineMs}
+                    timerSeconds={
+                      snapshot.settings.debug
+                        ? 0
+                        : snapshot.settings.turnTimerSeconds
+                    }
+                    notice={snapshot.lastAutoPlayNotice}
+                    urgencyForLocalPlayer={localTurnActive}
+                  />
 
-              <p className="muted">
-                {t("round")} {match.round} · {t("firstPlayer")}{" "}
-                {match.firstPlayerSeat + 1}
-              </p>
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={
-                    pendingMine?.kind ??
-                    (isMyTurn ? "mine" : "wait")
-                  }
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -4 }}
-                >
-                  {pendingMine
-                    ? pendingMine.kind === "lair"
-                      ? t("pendingLair")
-                      : t("pendingWater")
-                    : isMyTurn
-                      ? t("yourTurn")
-                      : t("waitingTurn")}
-                </motion.p>
-              </AnimatePresence>
-              {pendingMine?.kind === "water" ? (
-                <p className="muted">{t("waterZeroHint")}</p>
-              ) : null}
-
+                  <p className="muted">
+                    {t("round")} {match.round} · {t("firstPlayer")}{" "}
+                    {match.firstPlayerSeat + 1}
+                  </p>
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={
+                        pendingMine?.kind ??
+                        (isMyTurn ? "mine" : "wait")
+                      }
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                    >
+                      {pendingMine
+                        ? pendingMine.kind === "lair"
+                          ? t("pendingLair")
+                          : t("pendingWater")
+                        : isMyTurn
+                          ? t("yourTurn")
+                          : t("waitingTurn")}
+                    </motion.p>
+                  </AnimatePresence>
+                  {pendingMine?.kind === "water" ? (
+                    <p className="muted">{t("waterZeroHint")}</p>
+                  ) : null}
+                </div>
+                <PathDeckStack
+                  pathRemaining={match.deckSizes.pathDeck}
+                  roundsLeft={remainingRoundsFromForests(match.players)}
+                  pathRoundsLeft={remainingRoundsFromPathDeck(
+                    match.deckSizes.pathDeck,
+                  )}
+                  labels={{
+                    pathDeck: t("pathDeck"),
+                    pathCardsLeft: t("pathCardsLeft"),
+                    roundsLeft: t("roundsLeft"),
+                    pathRoundsLeft: t("pathRoundsLeft"),
+                  }}
+                />
+              </div>
               <h2>{t("market")}</h2>
               <MarketRow
                 market={match.market}
@@ -423,7 +531,6 @@ export function RoomPage() {
                 selectable={Boolean(isMyTurn && !pendingMine)}
                 dealKey={match.round}
                 deckSizes={match.deckSizes}
-                players={match.players}
                 onSelect={(slot) => setSelectedSlot(slot)}
               />
 
@@ -480,17 +587,19 @@ export function RoomPage() {
               ) : null}
 
               <h2 style={{ marginTop: "1.25rem" }}>{t("yourForest")}</h2>
-              <CopyDebugState
-                snapshot={snapshot}
-                youPlayerId={snapshot.youPlayerId}
-                selectedSlot={selectedSlot}
-                rotation={rotation}
-                waterAnimalId={waterAnimalId}
-                legal={legal}
-                locale={locale}
-                connectError={error}
-                connected={Boolean(you?.connected)}
-              />
+              {snapshot.settings.debug ? (
+                <CopyDebugState
+                  snapshot={snapshot}
+                  youPlayerId={snapshot.youPlayerId}
+                  selectedSlot={selectedSlot}
+                  rotation={rotation}
+                  waterAnimalId={waterAnimalId}
+                  legal={legal}
+                  locale={locale}
+                  connectError={error}
+                  connected={Boolean(you?.connected)}
+                />
+              ) : null}
               {pendingMine?.kind === "water" ? (
                 <div
                   className="water-product-picker"
@@ -582,6 +691,17 @@ export function RoomPage() {
                 }}
                 onIllegal={showIllegalNote}
               />
+              {otherPlayers.map((p) => (
+                <div key={p.id} style={{ marginTop: "1.75rem" }}>
+                  <h3 className="muted" style={{ margin: "0 0 0.5rem" }}>
+                    {p.isBot ? t("computer") : p.name}
+                  </h3>
+                  <ForestGrid
+                    forest={p.forest}
+                    label={p.isBot ? t("computer") : p.name}
+                  />
+                </div>
+              ))}
             </motion.div>
           ) : (
             <motion.div

@@ -33,6 +33,48 @@ export function connectionsAfterRotation(
   return new Set(base.map((e) => rotateEdge(e, rotation)));
 }
 
+function facingEdge(from: PlacedCard, to: PlacedCard): Edge | null {
+  const dr = to.cell.r - from.cell.r;
+  const dc = to.cell.c - from.cell.c;
+  if (dr === -1 && dc === 0) return "N";
+  if (dr === 1 && dc === 0) return "S";
+  if (dr === 0 && dc === 1) return "E";
+  if (dr === 0 && dc === -1) return "W";
+  return null;
+}
+
+/** The other port of the trail that `entry` belongs to, and its foods in travel order. */
+function segmentFromEntry(
+  def: PathCardDef,
+  rotation: Rotation,
+  entry: Edge,
+): { exit: Edge; foods: Food[] } | null {
+  if (!def.segments?.length) return null;
+  for (const seg of def.segments) {
+    const e0 = rotateEdge(seg.edges[0], rotation);
+    const e1 = rotateEdge(seg.edges[1], rotation);
+    if (entry === e0) return { exit: e1, foods: seg.foods };
+    if (entry === e1) return { exit: e0, foods: [...seg.foods].reverse() };
+  }
+  return null;
+}
+
+function exitsFrom(card: PlacedCard, entry: Edge | null): Edge[] {
+  const def = cardDefById(card.cardId);
+  if (!def) return [];
+  if (def.kind === "animal") {
+    return [rotateEdge(def.pathStart, card.rotation)];
+  }
+  if (def.segments?.length) {
+    if (!entry) return [];
+    const seg = segmentFromEntry(def, card.rotation, entry);
+    return seg ? [seg.exit] : [];
+  }
+  const edges = [...connectionsAfterRotation(def.connections, card.rotation)];
+  if (entry && !edges.includes(entry)) return [];
+  return edges.filter((e) => e !== entry);
+}
+
 export function cellKey(r: number, c: number): string {
   return `${r},${c}`;
 }
@@ -104,20 +146,20 @@ export function walkPathComponent(
   map: Map<string, PlacedCard>,
 ): Set<string> {
   const visited = new Set<string>();
-  const queue: PlacedCard[] = [animal];
+  const queue: { card: PlacedCard; entry: Edge | null }[] = [
+    { card: animal, entry: null },
+  ];
   visited.add(animal.instanceId);
 
   while (queue.length) {
-    const cur = queue.shift()!;
-    for (const edge of ["N", "E", "S", "W"] as Edge[]) {
-      const { dr, dc } = EDGE_DELTA[edge];
-      const nr = cur.cell.r + dr;
-      const nc = cur.cell.c + dc;
-      const neighbor = map.get(cellKey(nr, nc));
+    const { card: cur, entry } = queue.shift()!;
+    for (const edge of exitsFrom(cur, entry)) {
+      const { dr, dc, opp } = EDGE_DELTA[edge];
+      const neighbor = map.get(cellKey(cur.cell.r + dr, cur.cell.c + dc));
       if (!neighbor || visited.has(neighbor.instanceId)) continue;
       if (!edgesConnect(cur, neighbor, edge)) continue;
       visited.add(neighbor.instanceId);
-      queue.push(neighbor);
+      queue.push({ card: neighbor, entry: opp });
     }
   }
   return visited;
@@ -157,6 +199,19 @@ export function pathTopologyViolation(
       if (deg > 1) return "BRANCH";
       continue;
     }
+    if (def.segments?.length) {
+      const seen = new Set<Edge>();
+      for (const seg of def.segments) {
+        if (seg.edges.length > 2) {
+          return seg.edges.length > 3 ? "CROSS" : "BRANCH";
+        }
+        for (const edge of seg.edges) {
+          if (seen.has(edge)) return "BRANCH";
+          seen.add(edge);
+        }
+      }
+      continue;
+    }
     if (def.connections.length > 2) {
       return def.connections.length > 3 ? "CROSS" : "BRANCH";
     }
@@ -190,10 +245,21 @@ export function foodsAlongAnimalPath(animal: PlacedCard, forest: PlacedCard[]): 
 
     if (cur.kind === "animal") break;
     const curDef = cardDefById(cur.cardId);
-    if (curDef?.kind === "path") {
-      foods.push(...curDef.foods);
+    if (curDef?.kind !== "path") break;
+
+    const entry = facingEdge(cur, prev);
+    const seg = entry ? segmentFromEntry(curDef, cur.rotation, entry) : null;
+    if (seg) {
+      foods.push(...seg.foods);
+      const { dr, dc } = EDGE_DELTA[seg.exit];
+      const next = map.get(cellKey(cur.cell.r + dr, cur.cell.c + dc));
+      if (!next || next.kind !== "path" || !edgesConnect(cur, next, seg.exit)) break;
+      prev = cur;
+      cur = next;
+      continue;
     }
 
+    foods.push(...curDef.foods);
     const onward: PlacedCard[] = trailNeighbors(cur, map).filter(
       (n) => n.instanceId !== prev.instanceId && n.kind === "path",
     );
@@ -207,4 +273,55 @@ export function foodsAlongAnimalPath(animal: PlacedCard, forest: PlacedCard[]): 
 export function pathDef(cardId: string): PathCardDef | undefined {
   const d = cardDefById(cardId);
   return d?.kind === "path" ? d : undefined;
+}
+
+/**
+ * Path cards in traversal order from the animal outward along its trail.
+ * Mirrors foodsAlongAnimalPath but returns PlacedCard[] instead of Food[].
+ */
+export function pathCardsAlongAnimalPath(
+  animal: PlacedCard,
+  forest: PlacedCard[],
+): PlacedCard[] {
+  const def = cardDefById(animal.cardId) as AnimalCardDef | undefined;
+  if (!def || def.kind !== "animal") return [];
+
+  const map = forestMap(forest);
+  const startEdge = rotateEdge(def.pathStart, animal.rotation);
+  const { dr, dc } = EDGE_DELTA[startEdge];
+  const first = map.get(cellKey(animal.cell.r + dr, animal.cell.c + dc));
+  if (!first || !edgesConnect(animal, first, startEdge)) return [];
+
+  const cards: PlacedCard[] = [];
+  let prev: PlacedCard = animal;
+  let cur: PlacedCard | undefined = first;
+  const visited = new Set<string>([animal.instanceId]);
+
+  while (cur) {
+    if (visited.has(cur.instanceId)) break;
+    visited.add(cur.instanceId);
+    if (cur.kind === "animal") break;
+    const curDef = cardDefById(cur.cardId);
+    if (curDef?.kind !== "path") break;
+    cards.push(cur);
+
+    const entry = facingEdge(cur, prev);
+    const seg = entry ? segmentFromEntry(curDef, cur.rotation, entry) : null;
+    if (seg) {
+      const { dr: dr2, dc: dc2 } = EDGE_DELTA[seg.exit];
+      const next = map.get(cellKey(cur.cell.r + dr2, cur.cell.c + dc2));
+      if (!next || next.kind !== "path" || !edgesConnect(cur, next, seg.exit)) break;
+      prev = cur;
+      cur = next;
+      continue;
+    }
+
+    const onward: PlacedCard[] = trailNeighbors(cur, map).filter(
+      (n) => n.instanceId !== prev.instanceId && n.kind === "path",
+    );
+    if (onward.length !== 1) break;
+    prev = cur;
+    cur = onward[0];
+  }
+  return cards;
 }

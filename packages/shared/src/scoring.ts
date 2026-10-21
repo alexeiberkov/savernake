@@ -100,24 +100,13 @@ export function scorePlayerForest(forest: PlacedCard[]): {
   return { total, animals: breakdowns };
 }
 
-/** Tie-break: among tied, closest clockwise after first-player seat. */
+/** Returns the sole winner's id, or undefined if scores are tied (draw). */
 export function pickWinner(
   players: PlayerPublic[],
-  firstPlayerSeat: number,
+  _firstPlayerSeat: number,
 ): string | undefined {
   if (!players.length) return undefined;
   const max = Math.max(...players.map((p) => p.score ?? 0));
   const tied = players.filter((p) => (p.score ?? 0) === max);
-  if (tied.length === 1) return tied[0]!.id;
-
-  let best: PlayerPublic | undefined;
-  let bestDist = Infinity;
-  for (const p of tied) {
-    const dist = (p.seat - firstPlayerSeat + players.length) % players.length;
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = p;
-    }
-  }
-  return best?.id;
+  return tied.length === 1 ? tied[0]!.id : undefined;
 }

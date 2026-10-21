@@ -23,6 +23,12 @@ type Props = {
   /** Instance ids that just arrived — stronger place motion. */
   justPlacedId?: string | null;
   onIllegal?: () => void;
+  /** Override the aria-label (defaults to t("yourForest")). */
+  label?: string;
+  /** Cards to highlight with a gold glow (scoring walk). */
+  highlightedInstanceIds?: ReadonlySet<string>;
+  /** When true, filled cells not in highlightedInstanceIds are dimmed. */
+  scoringActive?: boolean;
 };
 
 export function ForestGrid({
@@ -35,6 +41,9 @@ export function ForestGrid({
   selectedAnimalId = null,
   justPlacedId,
   onIllegal,
+  label,
+  highlightedInstanceIds,
+  scoringActive = false,
 }: Props) {
   const { t } = useLocale();
   const byCell = new Map(forest.map((c) => [`${c.cell.r},${c.cell.c}`, c]));
@@ -42,6 +51,8 @@ export function ForestGrid({
   const targetSet = new Set(targetAnimalIds);
   const [shakeKey, setShakeKey] = useState<string | null>(null);
   const shakeTimer = useRef<number | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [cellPx, setCellPx] = useState(120);
 
   const bounds = useMemo(() => {
     const cells = [
@@ -80,6 +91,31 @@ export function ForestGrid({
     };
   }, []);
 
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const maxCell = 200;
+    const fit = () => {
+      const parent = el.parentElement;
+      const width = parent?.clientWidth ?? el.clientWidth;
+      const gap = Number.parseFloat(getComputedStyle(el).columnGap) || 0;
+      const byW = (width - gap * Math.max(0, bounds.cols - 1)) / bounds.cols;
+      // Keep the whole grid inside about 70% of the screen, independent of scroll.
+      const budget = Math.min(window.innerHeight * 0.7, 640);
+      const byH = (budget - gap * Math.max(0, bounds.rows - 1)) / bounds.rows;
+      const next = Math.round(Math.min(maxCell, byW, byH));
+      setCellPx((prev) => (prev === next ? prev : next));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (el.parentElement) ro.observe(el.parentElement);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [bounds.cols, bounds.rows]);
+
   function flashIllegal(key: string) {
     setShakeKey(key);
     if (shakeTimer.current) window.clearTimeout(shakeTimer.current);
@@ -95,11 +131,12 @@ export function ForestGrid({
 
   return (
     <div
+      ref={gridRef}
       className="forest-grid"
-      aria-label={t("yourForest")}
+      aria-label={label ?? t("yourForest")}
       style={{
-        gridTemplateColumns: `repeat(${bounds.cols}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${bounds.rows}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${bounds.cols}, ${cellPx}px)`,
+        gridTemplateRows: `repeat(${bounds.rows}, ${cellPx}px)`,
       }}
       data-extent={
         occupiedExt
@@ -127,6 +164,10 @@ export function ForestGrid({
           r <= occupiedExt.maxR &&
           c >= occupiedExt.minC &&
           c <= occupiedExt.maxC;
+        const isHighlighted = Boolean(
+          card && highlightedInstanceIds?.has(card.instanceId),
+        );
+        const isDimmed = Boolean(scoringActive && card && !isHighlighted);
 
         return (
           <motion.div
@@ -165,24 +206,40 @@ export function ForestGrid({
             }}
             animate={
               shaking
-                ? { x: [0, -6, 6, -4, 4, 0] }
+                ? { x: [0, -6, 6, -4, 4, 0], opacity: 1 }
                 : isLegal
                   ? {
                       x: 0,
+                      opacity: 1,
                       boxShadow: [
                         "0 0 0 1px rgba(232,192,122,0.35)",
                         "0 0 0 3px rgba(232,192,122,0.75)",
                         "0 0 0 1px rgba(232,192,122,0.35)",
                       ],
                     }
-                  : { x: 0, boxShadow: "0 0 0 0 rgba(0,0,0,0)" }
+                  : isHighlighted
+                    ? {
+                        x: 0,
+                        opacity: 1,
+                        boxShadow:
+                          "0 0 0 3px rgba(232,192,122,0.95), 0 0 22px rgba(232,192,122,0.55)",
+                      }
+                    : isDimmed
+                      ? {
+                          x: 0,
+                          opacity: 0.28,
+                          boxShadow: "0 0 0 0 rgba(0,0,0,0)",
+                        }
+                      : { x: 0, opacity: 1, boxShadow: "0 0 0 0 rgba(0,0,0,0)" }
             }
             transition={
               shaking
                 ? { duration: 0.4 }
                 : isLegal
                   ? { boxShadow: { duration: 1.6, repeat: Infinity } }
-                  : { type: "spring", stiffness: 320, damping: 22 }
+                  : isHighlighted || isDimmed
+                    ? { duration: 0.25 }
+                    : { type: "spring", stiffness: 320, damping: 22 }
             }
             whileHover={interactive ? { scale: 1.03 } : undefined}
           >

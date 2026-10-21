@@ -43,11 +43,24 @@ export type Phase = z.infer<typeof PhaseSchema>;
 
 export type CardKind = "path" | "animal";
 
+/** One trail on a path card. Foods run from edges[0] toward edges[1]. */
+export type PathSegment = {
+  edges: [Edge, Edge];
+  foods: Food[];
+};
+
 export type PathCardDef = {
   id: string;
   kind: "path";
+  /** Open sides. A diagonal card lists four: two separate trails, not one crossing. */
   connections: Edge[];
+  /** Every food on the card, in segment order. Scoring walks one trail at a time. */
   foods: Food[];
+  /**
+   * Disjoint trails. Absent only on the illegal test cards, which are one
+   * polyline through every connection.
+   */
+  segments?: PathSegment[];
 };
 
 export type AnimalCardDef = {
@@ -91,6 +104,8 @@ export type PlayerPublic = {
   name: string;
   seat: number;
   isHost: boolean;
+  /** Computer seat used by the debug room setting. */
+  isBot?: boolean;
   connected: boolean;
   cardCount: number;
   forest: PlacedCard[];
@@ -162,6 +177,8 @@ export type RoomSnapshot = {
   settings: {
     /** 0 = off; else seconds. Default 60. */
     turnTimerSeconds: number;
+    /** Solo play against the computer. Off unless chosen at room creation. */
+    debug: boolean;
   };
   /** Epoch ms when current turn expires; null if no timer / not in turn. */
   turnDeadlineMs: number | null;
@@ -180,8 +197,10 @@ export const ClientIntentSchema = z.discriminatedUnion("type", [
     type: z.literal("pickAndPlace"),
     slot: AdvisorSlotSchema,
     cell: z.object({
-      r: z.number().int().min(0).max(3),
-      c: z.number().int().min(0).max(3),
+      // Forest grows in any direction, then snaps to 0..3. A cell just
+      // outside the current box is -1 or one past the far edge.
+      r: z.number().int().min(-1).max(3),
+      c: z.number().int().min(-1).max(3),
     }),
     rotation: RotationSchema,
   }),
@@ -199,6 +218,8 @@ export const ClientIntentSchema = z.discriminatedUnion("type", [
     pathKey: z.string(),
     keepAnimalInstanceId: z.string(),
   }),
+  z.object({ type: z.literal("finishGame") }),
+  z.object({ type: z.literal("restartGame") }),
 ]);
 export type ClientIntent = z.infer<typeof ClientIntentSchema>;
 
