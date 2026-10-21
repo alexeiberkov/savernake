@@ -50,19 +50,36 @@ export function PlaceholderCard({
   const canPopover = Boolean(
     showPopover && kind === "animal" && (meta || animalDef),
   );
+  const pathFoods = def?.kind === "path" ? def.foods : [];
+  const hasArt = (kind === "animal" && Boolean(artSlug)) || kind === "path";
 
   const foodLabel = (food: Food) => t(food);
 
   return (
     <motion.div
       className={`ph-card ${kind}${compact ? " compact" : ""}${
-        artSlug && kind === "animal" ? " has-art" : ""
+        hasArt ? " has-art" : ""
       } ${className}`}
       animate={{ rotate: rotation }}
       transition={{ type: "spring", stiffness: 220, damping: 18 }}
-      aria-label={kind === "animal" ? label : `${t("placeholderArt")} ${cardId}`}
+      aria-label={
+        kind === "animal"
+          ? label
+          : `${t("pathDeck")} ${cardId}${
+              pathFoods.length ? `: ${pathFoods.map(foodLabel).join(", ")}` : ""
+            }`
+      }
     >
-      {kind === "animal" && animalDef && artSlug ? (
+      {kind === "path" ? (
+        <div className="path-face">
+          <img
+            className="path-face-img"
+            src={`/paths/${cardId}.png`}
+            alt=""
+            draggable={false}
+          />
+        </div>
+      ) : kind === "animal" && animalDef && artSlug ? (
         <AnimalCardFace
           def={animalDef}
           artSlug={artSlug}

@@ -5,11 +5,30 @@ type Props = {
   remaining: number;
   total: number;
   label: string;
+  /** Count sitting on the painted advisor icon. */
+  variant?: "chips" | "badge";
 };
 
 /** Soft bank chips beside advisor slots — shrink/remove as spent. */
-export function TokenBank({ kind, remaining, total, label }: Props) {
+export function TokenBank({
+  kind,
+  remaining,
+  total,
+  label,
+  variant = "chips",
+}: Props) {
   const safeRemaining = Math.max(0, Math.min(total, remaining));
+  if (variant === "badge") {
+    return (
+      <span
+        className={`advisor-supply ${kind}`}
+        title={`${label}: ${safeRemaining}/${total}`}
+        aria-label={`${label}: ${safeRemaining}/${total}`}
+      >
+        {safeRemaining}
+      </span>
+    );
+  }
   return (
     <div
       className={`token-bank ${kind}`}

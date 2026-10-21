@@ -3,17 +3,13 @@ import {
   LAIR_TOKEN_BANK,
   WATER_TOKEN_BANK,
   cardDefById,
-  remainingRoundsFromForests,
-  remainingRoundsFromPathDeck,
   slugFromAnimalCardId,
   type AdvisorSlot,
   type MarketSlot,
   type MatchDeckSizes,
-  type PlayerPublic,
 } from "@savernake/shared";
 import { animalMetaBySlug } from "../i18n/animal-meta";
 import { useLocale } from "../i18n/LocaleContext";
-import { PathDeckStack } from "./PathDeckStack";
 import { PlaceholderCard } from "./PlaceholderCard";
 import { TokenBank } from "./TokenBank";
 
@@ -25,10 +21,12 @@ type Props = {
   /** Bumps when market refills so draw-in staggers again. */
   dealKey?: string | number;
   deckSizes?: MatchDeckSizes | null;
-  players?: PlayerPublic[];
 };
 
 const PATH_SLOTS: AdvisorSlot[] = ["rooster", "armadillo", "goat"];
+
+/** Left to right on the advisor board: rooster, goat, armadillo, rabbit. */
+const BOARD_ORDER: AdvisorSlot[] = ["rooster", "goat", "armadillo", "rabbit"];
 
 export function MarketRow({
   market,
@@ -37,31 +35,41 @@ export function MarketRow({
   onSelect,
   dealKey = 0,
   deckSizes = null,
-  players = [],
 }: Props) {
   const { locale, t } = useLocale();
-  const pathRemaining = deckSizes?.pathDeck ?? 0;
   const waterRemaining = deckSizes?.waterSupply ?? WATER_TOKEN_BANK;
   const lairRemaining = deckSizes?.lairSupply ?? LAIR_TOKEN_BANK;
-  const roundsLeft = remainingRoundsFromForests(players);
-  const pathRoundsLeft = remainingRoundsFromPathDeck(pathRemaining);
+
+  const ordered = BOARD_ORDER.map((id) =>
+    market.find((slot) => slot.slot === id),
+  ).filter((slot): slot is MarketSlot => Boolean(slot));
 
   return (
-    <div className="market-board">
-      <PathDeckStack
-        pathRemaining={pathRemaining}
-        roundsLeft={roundsLeft}
-        pathRoundsLeft={pathRoundsLeft}
-        labels={{
-          pathDeck: t("pathDeck"),
-          pathCardsLeft: t("pathCardsLeft"),
-          roundsLeft: t("roundsLeft"),
-          pathRoundsLeft: t("pathRoundsLeft"),
-        }}
-      />
-
+    <div className="advisor-board">
+      <div className="advisor-banner">
+        <img
+          className="advisor-banner-img"
+          src="/advisors/board.jpg"
+          alt=""
+          draggable={false}
+        />
+        <TokenBank
+          kind="water"
+          variant="badge"
+          remaining={waterRemaining}
+          total={WATER_TOKEN_BANK}
+          label={t("waterBank")}
+        />
+        <TokenBank
+          kind="lair"
+          variant="badge"
+          remaining={lairRemaining}
+          total={LAIR_TOKEN_BANK}
+          label={t("burrowBank")}
+        />
+      </div>
       <div className="market-row" aria-label={t("market")}>
-        {market.map((slot, index) => {
+        {ordered.map((slot, index) => {
           const canPick = Boolean(selectable && slot.cardId);
           const def = slot.cardId ? cardDefById(slot.cardId) : undefined;
           const slug =
@@ -74,24 +82,7 @@ export function MarketRow({
 
           return (
             <div key={slot.slot} className="market-slot-wrap">
-              <span className="slot-label">{slot.slot}</span>
-              {slot.slot === "armadillo" ? (
-                <TokenBank
-                  kind="lair"
-                  remaining={lairRemaining}
-                  total={LAIR_TOKEN_BANK}
-                  label={t("burrowBank")}
-                />
-              ) : null}
-              {slot.slot === "goat" ? (
-                <TokenBank
-                  kind="water"
-                  remaining={waterRemaining}
-                  total={WATER_TOKEN_BANK}
-                  label={t("waterBank")}
-                />
-              ) : null}
-              <AnimatePresence mode="sync">
+              <AnimatePresence mode="popLayout" initial={false}>
                 {slot.cardId && slot.kind ? (
                   <motion.button
                     key={`${dealKey}-${slot.cardId}`}
@@ -103,7 +94,7 @@ export function MarketRow({
                     onClick={() => canPick && onSelect?.(slot.slot)}
                     initial={
                       isPathDeal
-                        ? { x: -72, y: 28, opacity: 0, scale: 0.55, rotate: -8 }
+                        ? { x: -16, y: -40, opacity: 0, scale: 0.55, rotate: -8 }
                         : isAnimalDeal
                           ? { x: 48, y: -24, opacity: 0, scale: 0.55, rotate: 6 }
                           : { y: -20, opacity: 0, scale: 0.92 }
@@ -114,11 +105,6 @@ export function MarketRow({
                       opacity: 1,
                       scale: selected === slot.slot ? 1.04 : 1,
                       rotate: 0,
-                    }}
-                    exit={{
-                      opacity: 0,
-                      scale: 0.9,
-                      transition: { duration: 0.18 },
                     }}
                     transition={{
                       delay: isPathDeal
@@ -144,7 +130,6 @@ export function MarketRow({
                     className="market-slot empty"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.55 }}
-                    exit={{ opacity: 0 }}
                   >
                     —
                   </motion.div>

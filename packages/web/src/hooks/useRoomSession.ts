@@ -100,11 +100,15 @@ export function useRoomSession(code: string | undefined) {
   };
 }
 
-export async function createRoomApi(name: string, turnTimerSeconds = 60) {
+export async function createRoomApi(
+  name: string,
+  turnTimerSeconds = 60,
+  debug = false,
+) {
   const res = await fetch("/api/rooms", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, turnTimerSeconds }),
+    body: JSON.stringify({ name, turnTimerSeconds, debug }),
   });
   if (!res.ok) throw new Error("CREATE_FAILED");
   const data = (await res.json()) as {

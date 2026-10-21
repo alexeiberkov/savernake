@@ -6,10 +6,16 @@ export const TURN_TIMER_MAX_SECONDS = 300;
 export type RoomSettings = {
   /** 0 = timer off; else 30–300. Default when creating a room: 60. */
   turnTimerSeconds: number;
+  /** Solo table: a computer takes the second seat and plays its own turns. */
+  debug: boolean;
 };
 
 export function defaultRoomSettings(): RoomSettings {
-  return { turnTimerSeconds: TURN_TIMER_DEFAULT_SECONDS };
+  return { turnTimerSeconds: TURN_TIMER_DEFAULT_SECONDS, debug: false };
+}
+
+export function normalizeDebug(raw: unknown): boolean {
+  return raw === true || raw === "true" || raw === 1 || raw === "1";
 }
 
 export function normalizeTurnTimerSeconds(raw: unknown): number {

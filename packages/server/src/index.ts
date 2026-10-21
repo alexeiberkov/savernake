@@ -29,6 +29,7 @@ app.post("/api/rooms", (req, res) => {
   const { snapshot, resumeToken } = rooms.createRoom(
     name,
     req.body?.turnTimerSeconds,
+    req.body?.debug,
   );
   res.json({ snapshot, resumeToken });
 });

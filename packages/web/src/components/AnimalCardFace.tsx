@@ -6,13 +6,7 @@ import {
   type PlacedCard,
 } from "@savernake/shared";
 import { animalImageSrc } from "../i18n/animal-meta";
-import {
-  BurrowIcon,
-  CaveTokenIcon,
-  DropletIcon,
-  FoodIcon,
-  LeafVpIcon,
-} from "./card-icons";
+import { DropletIcon } from "./card-icons";
 
 type Labels = {
   food: (food: Food) => string;
@@ -59,51 +53,37 @@ export function AnimalCardFace({
       <span className="animal-path-start edge-n" title={labels.pathStart} />
 
       {ANIMAL_FOOD_CORNERS.map(({ food, corner }) => {
-        const vp = def.foodValue[food];
-        const hasWater = (waterBonus[food] ?? 0) > 0;
-        const title = hasWater
-          ? `${labels.food(food)}: ${vp}+1 → ${vp + 1}`
-          : `${labels.food(food)}: ${vp}`;
+        const drop = (waterBonus[food] ?? 0) > 0;
+        const base = def.foodValue[food];
+        const value = base + (drop ? 1 : 0);
+        const title = drop
+          ? `${labels.food(food)}: ${base}+1 → ${value}`
+          : `${labels.food(food)}: ${value}`;
         return (
-          <span
-            key={food}
-            className={`animal-food-corner ${corner}`}
-            title={title}
-          >
-            <FoodIcon food={food} className="animal-food-icon" />
-            <span className="animal-food-vp">{vp}</span>
-            {hasWater ? (
-              <span
-                className="animal-water-pip"
-                title={`${labels.dropletUpgrade}: ${labels.food(food)}`}
-              >
-                <DropletIcon className="animal-droplet-icon" />
-              </span>
-            ) : null}
+          <span key={food} className={`animal-food-live ${corner}`} title={title}>
+            {value}
           </span>
         );
       })}
 
-      <span
-        className="animal-base-vp"
-        title={`${labels.animalVp}: ${def.animalPoints}`}
-      >
-        <LeafVpIcon className="animal-leaf-icon" />
-        <span className="animal-base-vp-num">{def.animalPoints}</span>
-      </span>
-
-      <span className="animal-burrow" title={capacityTitle}>
-        <BurrowIcon className="animal-burrow-icon" />
-        <span className="animal-burrow-num">{capacity}</span>
-        {lairTokens > 0 ? (
+      {ANIMAL_FOOD_CORNERS.map(({ food, corner }) => {
+        const drop = (waterBonus[food] ?? 0) > 0;
+        if (!drop) return null;
+        return (
           <span
-            className="animal-cave-pip"
-            title={`${labels.caveUpgrade} ×${lairTokens}`}
+            key={`${food}-drop`}
+            className={`animal-food-corner ${corner}`}
+            title={`${labels.dropletUpgrade}: ${labels.food(food)}`}
           >
-            <CaveTokenIcon className="animal-cave-icon" />
-            <span>×{lairTokens}</span>
+            <span className="animal-water-pip">
+              <DropletIcon className="animal-droplet-icon" />
+            </span>
           </span>
-        ) : null}
+        );
+      })}
+
+      <span className="animal-capacity-live" title={capacityTitle}>
+        {capacity}
       </span>
     </div>
   );

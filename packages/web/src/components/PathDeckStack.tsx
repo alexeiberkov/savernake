@@ -36,7 +36,10 @@ export function PathDeckStack({
       aria-label={tip}
     >
       <span className="path-deck-label">{labels.pathDeck}</span>
-      <div className="path-deck-body">
+      <div
+        className="path-deck-body"
+        style={{ ["--layers" as string]: layers }}
+      >
         {n === 0 ? (
           <div className="path-deck-empty">0</div>
         ) : (

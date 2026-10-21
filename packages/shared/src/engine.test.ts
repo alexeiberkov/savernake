@@ -19,7 +19,7 @@ import {
   scorePlayerForest,
   scoreStoredFoods,
 } from "./scoring.js";
-import type { PlayerPublic, PlacedCard } from "./types.js";
+import { ClientIntentSchema, type PlayerPublic, type PlacedCard } from "./types.js";
 
 function lobbyPlayer(id: string, seat: number, host = false): PlayerPublic {
   return {
@@ -121,6 +121,25 @@ describe("placement", () => {
     assert.equal(ext.cols, 1);
     assert.ok(grown.some((c) => c.instanceId === "p" && c.cell.r === 0));
     assert.ok(grown.some((c) => c.instanceId === "s" && c.cell.r === 1));
+  });
+
+  it("accepts a pick just outside the current forest (north of the starter)", () => {
+    const parsed = ClientIntentSchema.safeParse({
+      type: "pickAndPlace",
+      slot: "armadillo",
+      cell: { r: -1, c: 0 },
+      rotation: 0,
+    });
+    assert.equal(parsed.success, true);
+    assert.equal(
+      ClientIntentSchema.safeParse({
+        type: "pickAndPlace",
+        slot: "armadillo",
+        cell: { r: -2, c: 0 },
+        rotation: 0,
+      }).success,
+      false,
+    );
   });
 
   it("hard-caps bounding box at 4×4", () => {
@@ -397,7 +416,7 @@ describe("pickAndPlace + advisors", () => {
 
 describe("path conflicts + scoring", () => {
   it("detects two animals linked by trail and resolves at end", () => {
-    // All animals pathStart N; rotate so exits face the E-W path between them.
+    // Animals exit toward the straight E-W trail between them (path_21).
     const forest: PlacedCard[] = [
       {
         instanceId: "a1",
@@ -410,7 +429,7 @@ describe("path conflicts + scoring", () => {
       },
       {
         instanceId: "p1",
-        cardId: "path_02",
+        cardId: "path_21",
         kind: "path",
         rotation: 0,
         cell: { r: 1, c: 1 },
@@ -457,10 +476,10 @@ describe("path conflicts + scoring", () => {
   });
 
   it("water on printed 0-value food still scores +1", () => {
-    // animal_blue_jay: eggs printed 0, pathStart N. path_12: S+E + eggs food.
+    // animal_squirrel: eggs printed 0, pathStart N. path_14 south trail is eggs.
     const animal: PlacedCard = {
       instanceId: "a",
-      cardId: "animal_blue_jay",
+      cardId: "animal_squirrel",
       kind: "animal",
       rotation: 0,
       cell: { r: 1, c: 1 },
@@ -469,7 +488,7 @@ describe("path conflicts + scoring", () => {
     };
     const path: PlacedCard = {
       instanceId: "p",
-      cardId: "path_12",
+      cardId: "path_14",
       kind: "path",
       rotation: 0,
       cell: { r: 0, c: 1 },
@@ -493,14 +512,14 @@ describe("path conflicts + scoring", () => {
     };
     const path: PlacedCard = {
       instanceId: "p",
-      cardId: "path_12",
+      cardId: "path_14",
       kind: "path",
       rotation: 0,
       cell: { r: 0, c: 1 },
       lairTokens: 0,
       waterBonus: {},
     };
-    // Fox pathStart is N — faces path_12 above at rotation 0.
+    // Fox pathStart is N — faces path_14 above at rotation 0.
     const scored = scoreAnimal(animal, [animal, path]);
     assert.deepEqual(scored.stored, ["eggs"]);
     assert.equal(scored.foodPoints, 3, "printed 2 + droplet 1");
@@ -528,12 +547,28 @@ describe("path conflicts + scoring", () => {
       lairTokens: 2,
       waterBonus: {},
     };
-    // Hedgehog storage 3 + 2 caves = 5
+    // Hedgehog storage 0 + 2 caves = 2
     const scored = scoreAnimal(animal, [animal]);
-    assert.equal(scored.capacity, 5);
+    assert.equal(scored.capacity, 2);
     assert.equal(animalCapacity({ storage: 3 }, { lairTokens: 0 }), 3);
     assert.equal(animalCapacity({ storage: 3 }, { lairTokens: 1 }), 4);
     assert.equal(animalCapacity({ storage: 3 }, { lairTokens: 2 }), 5);
+  });
+
+  it("finishGame scores the forests and ends the match", () => {
+    const state = startTwoPlayer("seed-finish-now");
+    const res = GameEngine.applyIntent(state, "a", { type: "finishGame" });
+    assert.equal(res.ok, true);
+    if (!res.ok) return;
+    assert.equal(res.state.phase, "finished");
+    assert.ok(res.state.players.every((p) => typeof p.score === "number"));
+    assert.ok(res.state.winnerPlayerId);
+  });
+
+  it("finishGame refuses a lobby", () => {
+    const match = createLobbyMatch("seed-lobby-finish");
+    const res = GameEngine.finishGame(match);
+    assert.equal(res.ok, false);
   });
 
   it("scores forest and finishes when forced full", () => {

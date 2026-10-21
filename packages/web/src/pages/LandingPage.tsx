@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useLocale } from "../i18n/LocaleContext";
@@ -10,15 +10,25 @@ export function LandingPage() {
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [turnTimerSeconds, setTurnTimerSeconds] = useState(60);
+  const [debug, setDebug] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    document.body.classList.add("home");
+    return () => document.body.classList.remove("home");
+  }, []);
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const data = await createRoomApi(name || "Host", turnTimerSeconds);
+      const data = await createRoomApi(
+        name || "Host",
+        debug ? 0 : turnTimerSeconds,
+        debug,
+      );
       navigate(`/r/${data.snapshot.roomCode}`);
     } catch {
       setError("CREATE_FAILED");
@@ -68,7 +78,7 @@ export function LandingPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, ease: "easeOut" }}
       >
-        {t("brand")}
+        {t("homeTitle")}
       </motion.h1>
       <motion.p
         className="lead"
@@ -103,16 +113,25 @@ export function LandingPage() {
               min={0}
               max={300}
               step={15}
-              value={turnTimerSeconds}
+              value={debug ? 0 : turnTimerSeconds}
+              disabled={debug}
               onChange={(e) => setTurnTimerSeconds(Number(e.target.value))}
             />
+          </label>
+          <label className="debug-toggle">
+            <input
+              type="checkbox"
+              checked={debug}
+              onChange={(e) => setDebug(e.target.checked)}
+            />
+            {t("debugPlay")}
           </label>
           <button className="btn" type="submit" disabled={busy}>
             {t("createRoom")}
           </button>
         </form>
         <p className="muted" style={{ marginTop: "0.65rem" }}>
-          {t("turnTimerHint")}
+          {t("turnTimerHint")} {t("debugPlayHint")}
         </p>
       </motion.div>
 

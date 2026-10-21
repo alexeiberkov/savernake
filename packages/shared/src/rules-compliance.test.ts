@@ -10,6 +10,7 @@ import {
   type InternalMatch,
 } from "./engine.js";
 import {
+  findMultiAnimalPaths,
   foodsAlongAnimalPath,
   pathTopologyViolation,
 } from "./path-graph.js";
@@ -22,6 +23,7 @@ import {
   scorePlayerForest,
   scoreStoredFoods,
 } from "./scoring.js";
+import { cardDefById } from "./placeholder-cards.js";
 import type { PlacedCard, PlayerPublic } from "./types.js";
 
 function lobbyPlayer(id: string, seat: number, host = false): PlayerPublic {
@@ -198,7 +200,7 @@ describe("GAME_RULES compliance", () => {
     assert.equal(
       validatePlacement(forest, { r: 0, c: 1 }, {
         ...placeOpts,
-        cardId: "path_02", // E-W
+        cardId: "path_21", // E-W, does not meet the animal's north exit
         kind: "path",
         rotation: 0,
       }),
@@ -313,7 +315,9 @@ describe("GAME_RULES compliance", () => {
       .forest.find((c) => c.instanceId === animalId)!;
     assert.equal(animal.lairTokens, 1);
     const scored = scoreAnimal(animal, [animal]);
-    assert.equal(scored.capacity, 4); // base 3 + 1 cave
+    const def = cardDefById(animal.cardId);
+    const base = def?.kind === "animal" ? def.storage : 0;
+    assert.equal(scored.capacity, base + 1);
   });
 
   it("Goat water +1 per food type on every collected symbol", () => {
@@ -429,7 +433,7 @@ describe("GAME_RULES compliance", () => {
   });
 
   it("foods along path are collected in polyline order from the animal", () => {
-    // hedgehog N → path_12 (S+E, eggs) at ( -1 effectively after normalize: place at north)
+    // hedgehog N → path_14 south trail (eggs only; berries are the other trail)
     const animal: PlacedCard = {
       instanceId: "a",
       cardId: "animal_hedgehog",
@@ -441,7 +445,7 @@ describe("GAME_RULES compliance", () => {
     };
     const path: PlacedCard = {
       instanceId: "p",
-      cardId: "path_12",
+      cardId: "path_14",
       kind: "path",
       rotation: 0,
       cell: { r: 0, c: 0 },
@@ -450,6 +454,73 @@ describe("GAME_RULES compliance", () => {
     };
     const foods = foodsAlongAnimalPath(animal, [animal, path]);
     assert.deepEqual(foods, ["eggs"]);
+  });
+
+  const owlBelow = (id = "a"): PlacedCard => ({
+    instanceId: id,
+    cardId: "animal_barn_owl",
+    kind: "animal",
+    rotation: 0,
+    cell: { r: 1, c: 0 },
+    lairTokens: 0,
+    waterBonus: {},
+  });
+  const pathAbove = (
+    cardId: string,
+    rotation: PlacedCard["rotation"],
+  ): PlacedCard => ({
+    instanceId: "p",
+    cardId,
+    kind: "path",
+    rotation,
+    cell: { r: 0, c: 0 },
+    lairTokens: 0,
+    waterBonus: {},
+  });
+
+  it("corner trail is eaten in walking order, either direction (path_05)", () => {
+    // N–E corner: raspberry near N, eggs near E.
+    const owl = owlBelow();
+    const fromN = pathAbove("path_05", 180);
+    assert.deepEqual(foodsAlongAnimalPath(owl, [owl, fromN]), ["berries", "eggs"]);
+    assert.deepEqual(scoreAnimal(owl, [owl, fromN]).stored, ["berries", "eggs"]);
+    const fromE = pathAbove("path_05", 90);
+    assert.deepEqual(foodsAlongAnimalPath(owl, [owl, fromE]), ["eggs", "berries"]);
+  });
+
+  it("straight trail is eaten in walking order, either direction (path_23)", () => {
+    // E–W: raspberry near E, worm near W.
+    const owl = owlBelow();
+    const fromE = pathAbove("path_23", 90);
+    assert.deepEqual(foodsAlongAnimalPath(owl, [owl, fromE]), ["berries", "worms"]);
+    const fromW = pathAbove("path_23", 270);
+    assert.deepEqual(foodsAlongAnimalPath(owl, [owl, fromW]), ["worms", "berries"]);
+  });
+
+  it("diagonal card holds two separate trails, one acorn each (path_28)", () => {
+    const owl = owlBelow("a1");
+    const diagonal = pathAbove("path_28", 0);
+    const eastPath: PlacedCard = {
+      instanceId: "p2",
+      cardId: "path_21",
+      kind: "path",
+      rotation: 0,
+      cell: { r: 0, c: 1 },
+      lairTokens: 0,
+      waterBonus: {},
+    };
+    const owlAbove: PlacedCard = {
+      ...owlBelow("a2"),
+      rotation: 180,
+      cell: { r: -1, c: 0 },
+    };
+    const forest = [owl, diagonal, eastPath, owlAbove];
+    // Bottom owl walks S→W and never reaches the N–E trail or path_21.
+    assert.deepEqual(foodsAlongAnimalPath(owl, forest), ["nuts"]);
+    // Top owl walks N→E onto path_21 and picks up its worm too.
+    assert.deepEqual(foodsAlongAnimalPath(owlAbove, forest), ["nuts", "worms"]);
+    assert.equal(findMultiAnimalPaths(forest).length, 0);
+    assert.equal(pathTopologyViolation(forest), null);
   });
 
   it("end of round discards leftovers and refills; FP starts next round", () => {

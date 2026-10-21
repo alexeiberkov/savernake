@@ -603,6 +603,14 @@ export class GameEngine {
     return { ok: true, state: next };
   }
 
+  /** End the current game and score the forests as they stand. */
+  static finishGame(match: InternalMatch): EngineResult<InternalMatch> {
+    if (match.phase === "lobby" || match.phase === "finished") {
+      return { ok: false, error: "WRONG_PHASE", message: "Game is not in progress" };
+    }
+    return { ok: true, state: finalizeScores(match) };
+  }
+
   static applyIntent(
     match: InternalMatch,
     playerId: string,
@@ -629,6 +637,8 @@ export class GameEngine {
           intent.pathKey,
           intent.keepAnimalInstanceId,
         );
+      case "finishGame":
+        return GameEngine.finishGame(match);
       case "setDisplayName":
         return {
           ok: true,

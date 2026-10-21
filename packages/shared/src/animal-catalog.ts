@@ -1,5 +1,4 @@
 import type { AnimalCardDef, Edge, Food, FoodVp } from "./types.js";
-import { ALL_FOODS } from "./types.js";
 
 /**
  * Playable animal deck (19) — advisors (rooster/armadillo/goat/rabbit) are board
@@ -66,9 +65,6 @@ export function slugFromAnimalCardId(cardId: string): string | null {
   return cardId.slice("animal_".length).replace(/_/g, "-");
 }
 
-/** Default initial den capacity until physical cards are verified. */
-export const DEFAULT_ANIMAL_STORAGE = 3;
-
 /**
  * Printed path-start is always the top edge of the card face (fox ref).
  * Rotation turns the whole card; engine uses pathStart + rotation.
@@ -76,8 +72,8 @@ export const DEFAULT_ANIMAL_STORAGE = 3;
 export const DEFAULT_PATH_START: Edge = "N";
 
 /**
- * Printed food corners on the animal card face (fox reference / GAME_RULES).
- * Swap `foodValue` numbers later — corner positions stay fixed.
+ * Printed food corners on the animal card face.
+ * Raspberry top-left, worm top-right, eggs bottom-left, acorn bottom-right.
  */
 export const ANIMAL_FOOD_CORNERS: { food: Food; corner: "tl" | "tr" | "bl" | "br" }[] =
   [
@@ -87,32 +83,48 @@ export const ANIMAL_FOOD_CORNERS: { food: Food; corner: "tl" | "tr" | "bl" | "br
     { food: "nuts", corner: "br" },
   ];
 
-/**
- * Placeholder product VP (0/1/2) until Aliaksei supplies real weights.
- * Pattern: ((animalIndex + foodIndex) % 3). Fox eggs forced to 2 (GAME_RULES §15).
- */
-function placeholderFoodValue(i: number): Record<Food, FoodVp> {
-  const values = {} as Record<Food, FoodVp>;
-  for (let f = 0; f < ALL_FOODS.length; f++) {
-    values[ALL_FOODS[f]!] = ((i + f) % 3) as FoodVp;
-  }
-  return values;
-}
+type PrintedAnimal = {
+  /** VP for berries, worms, eggs, nuts — the four corner flowers. The face draws these; they are not printed on the art. */
+  food: [FoodVp, FoodVp, FoodVp, FoodVp];
+  /** Red leaf: the animal’s own VP. */
+  animalPoints: 1 | 2 | 3;
+  /** Number under the stone cairn: starting den capacity. The face draws this; it is not printed on the art. */
+  storage: number;
+};
 
-/** Synthetic stats — placeholders until physical verification / real product list. */
+/** Read from the physical animal cards (corner flowers, leaf, cairn). */
+const PRINTED: Record<AnimalSlug, PrintedAnimal> = {
+  hedgehog: { food: [2, 1, 1, 2], animalPoints: 3, storage: 0 },
+  badger: { food: [1, 2, 2, 1], animalPoints: 3, storage: 0 },
+  beaver: { food: [2, 0, 0, 2], animalPoints: 2, storage: 2 },
+  fox: { food: [0, 1, 2, 0], animalPoints: 2, storage: 3 },
+  "blue-jay": { food: [1, 1, 1, 1], animalPoints: 2, storage: 2 },
+  magpie: { food: [0, 0, 1, 0], animalPoints: 1, storage: 5 },
+  mole: { food: [0, 2, 0, 0], animalPoints: 1, storage: 4 },
+  raven: { food: [0, 1, 2, 1], animalPoints: 2, storage: 3 },
+  "barn-owl": { food: [0, 1, 1, 0], animalPoints: 1, storage: 4 },
+  mouse: { food: [0, 1, 0, 1], animalPoints: 1, storage: 4 },
+  shrew: { food: [1, 1, 0, 0], animalPoints: 1, storage: 4 },
+  squirrel: { food: [0, 0, 0, 1], animalPoints: 1, storage: 5 },
+  woodpecker: { food: [0, 0, 0, 2], animalPoints: 1, storage: 4 },
+  chipmunk: { food: [1, 0, 0, 2], animalPoints: 2, storage: 3 },
+  titmouse: { food: [1, 0, 1, 0], animalPoints: 1, storage: 4 },
+  wildcat: { food: [0, 0, 2, 0], animalPoints: 1, storage: 4 },
+  "pygmy-possum": { food: [1, 1, 2, 0], animalPoints: 2, storage: 2 },
+  chickadee: { food: [1, 0, 0, 0], animalPoints: 1, storage: 5 },
+  hamster: { food: [1, 1, 0, 1], animalPoints: 2, storage: 3 },
+};
+
 export const PLACEHOLDER_ANIMALS: AnimalCardDef[] = PLAYABLE_ANIMAL_SLUGS.map(
-  (slug, i) => {
-    const foodValue = placeholderFoodValue(i);
-    // Fox eggs example (GAME_RULES §15): printed +2 → +3 with water token.
-    if (slug === "fox") {
-      foodValue.eggs = 2;
-    }
+  (slug) => {
+    const printed = PRINTED[slug];
+    const [berries, worms, eggs, nuts] = printed.food;
     return {
       id: animalCardId(slug),
       kind: "animal" as const,
-      foodValue,
-      storage: DEFAULT_ANIMAL_STORAGE,
-      animalPoints: ((i % 3) + 1) as 1 | 2 | 3,
+      foodValue: { berries, worms, eggs, nuts },
+      storage: printed.storage,
+      animalPoints: printed.animalPoints,
       pathStart: DEFAULT_PATH_START,
       artSlug: slug,
     };
