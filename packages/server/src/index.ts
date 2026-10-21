@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import { createServer } from "node:http";
+import { existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Server } from "socket.io";
 import { RoomManager } from "./room-manager.js";
 
@@ -165,6 +168,16 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+// In production, serve the Vite build from packages/web/dist
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const webDist = join(__dirname, "../../web/dist");
+if (existsSync(webDist)) {
+  app.use(express.static(webDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(join(webDist, "index.html"));
+  });
+}
 
 httpServer.listen(PORT, () => {
   console.log(`[savernake] server on http://localhost:${PORT}`);
