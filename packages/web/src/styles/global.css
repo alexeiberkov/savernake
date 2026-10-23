@@ -1717,3 +1717,26 @@ label.debug-toggle input {
   line-height: 1;
 }
 .forest-confirm-btn:hover { background: var(--amber-bright); transform: translateY(-50%) scale(1.1); }
+
+/* ── Rotate button overlaid on pinned forest cell ────────────────────── */
+.forest-rotate-btn {
+  position: absolute;
+  left: -1.15rem;
+  top: calc(50% - 2.4rem);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid rgba(20, 36, 28, 0.9);
+  background: rgba(60, 80, 60, 0.92);
+  color: var(--text);
+  font-size: 1.15rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  z-index: 20;
+  padding: 0;
+  line-height: 1;
+}
+.forest-rotate-btn:hover { background: var(--bg-leaf); transform: rotate(30deg); }

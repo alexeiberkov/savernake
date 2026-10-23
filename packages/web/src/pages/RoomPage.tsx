@@ -599,38 +599,18 @@ export function RoomPage() {
                 onSelect={(slot) => setSelectedSlot(slot)}
               />
 
-              {isMyTurn && !pendingMine ? (
-                <div className="place-toolbar">
-                  <motion.button
-                    type="button"
-                    className="btn ghost"
-                    whileTap={{ rotate: 15 }}
-                    onClick={() =>
-                      setRotation(
-                        ROTATIONS[
-                          (ROTATIONS.indexOf(rotation) + 1) % ROTATIONS.length
-                        ]!,
-                      )
-                    }
+              {isMyTurn && !pendingMine && illegalNote ? (
+                <AnimatePresence>
+                  <motion.span
+                    className="error"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    style={{ display: "inline-block", marginTop: "0.5rem" }}
                   >
-                    {t("rotate")} ({rotation}°)
-                  </motion.button>
-                  <p className="muted" style={{ margin: 0 }}>
-                    {previewCell ? t("previewPinnedHint") : t("previewHint")}
-                  </p>
-                  <AnimatePresence>
-                    {illegalNote ? (
-                      <motion.span
-                        className="error"
-                        initial={{ opacity: 0, x: -6 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0 }}
-                      >
-                        {t("illegalPlace")}
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
+                    {t("illegalPlace")}
+                  </motion.span>
+                </AnimatePresence>
               ) : null}
 
               <h2 style={{ marginTop: "1.25rem" }}>{t("yourForest")}</h2>

@@ -323,6 +323,16 @@ export function ForestGrid({
                 </motion.span>
               )}
             </AnimatePresence>
+            {isPinned && onRotatePreview && (
+              <button
+                type="button"
+                className="forest-rotate-btn"
+                onClick={(e) => { e.stopPropagation(); onRotatePreview(); }}
+                title="Повернуть"
+              >
+                ↻
+              </button>
+            )}
             {isPinned && onConfirmPreview && (
               <button
                 type="button"
