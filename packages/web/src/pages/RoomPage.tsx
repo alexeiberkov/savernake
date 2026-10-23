@@ -310,6 +310,9 @@ export function RoomPage() {
           timerSeconds={
             snapshot.settings.debug ? 0 : snapshot.settings.turnTimerSeconds
           }
+          roomCode={snapshot.roomCode}
+          onShare={copyLink}
+          shareCopied={copied}
           soundEnabled={soundEnabled}
           onToggleSound={toggleSound}
         />

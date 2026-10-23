@@ -8,6 +8,9 @@ type Props = {
   round: number;
   deadlineMs: number | null;
   timerSeconds: number;
+  roomCode?: string;
+  onShare?: () => void;
+  shareCopied?: boolean;
   soundEnabled?: boolean;
   onToggleSound?: () => void;
 };
@@ -18,6 +21,9 @@ export function TurnStatusBar({
   round,
   deadlineMs,
   timerSeconds,
+  roomCode,
+  onShare,
+  shareCopied,
   soundEnabled = true,
   onToggleSound,
 }: Props) {
@@ -57,6 +63,23 @@ export function TurnStatusBar({
           >
             {left != null ? `${left}s` : `${timerSeconds}s`}
           </span>
+        </>
+      )}
+      {roomCode && (
+        <>
+          <span className="turn-status-bar__sep" aria-hidden />
+          <span className="turn-status-bar__room">{roomCode}</span>
+          {onShare && (
+            <button
+              type="button"
+              className="turn-status-bar__share"
+              onClick={onShare}
+              title={shareCopied ? "Copied!" : "Copy invite link"}
+              aria-label="Share"
+            >
+              {shareCopied ? "✓" : "⎘"}
+            </button>
+          )}
         </>
       )}
       {onToggleSound && (
