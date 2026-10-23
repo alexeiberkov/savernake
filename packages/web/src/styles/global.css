@@ -91,7 +91,6 @@ a {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1.25rem;
-  border-bottom: 1px solid var(--fog);
   backdrop-filter: blur(8px);
   background: rgba(26, 46, 36, 0.55);
 }
