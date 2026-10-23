@@ -312,8 +312,8 @@ export function RoomPage() {
     <div
       className={`table-layout${inLobby ? " lobby-mode" : ""}${advisorCursorClass}`}
     >
-      <section className="panel table-bar">
-        {inLobby && (
+      {inLobby && <section className="panel table-bar">
+        {(
           <div className="table-bar-meta">
             <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {t("lobby")} · {snapshot.roomCode}
@@ -372,7 +372,7 @@ export function RoomPage() {
           </div>
         )}
 
-      </section>
+      </section>}
 
       <section className="panel play-panel">
         {snapshot.settings.debug &&

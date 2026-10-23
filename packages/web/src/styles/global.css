@@ -1807,3 +1807,14 @@ label.debug-toggle input {
 .game-col-forest {
   min-width: 0;
 }
+
+/* ── Scoring event label during animation ────────────────────────────── */
+.scoring-event-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--amber-bright);
+  background: rgba(212, 161, 90, 0.12);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 161, 90, 0.25);
+}
