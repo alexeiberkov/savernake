@@ -314,75 +314,64 @@ export function RoomPage() {
       className={`table-layout${inLobby ? " lobby-mode" : ""}${advisorCursorClass}`}
     >
       <section className="panel table-bar">
-        <div className="table-bar-meta">
-        <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          {inLobby ? t("lobby") : t("table")} · {snapshot.roomCode}
-          <RulesGuide />
-        </h2>
-        <p className="muted">
-          {t("shareLink")}: {shareUrl}
-        </p>
-        <div className="row">
-          <button type="button" className="btn ghost" onClick={copyLink}>
-            {copied ? t("copied") : t("copyLink")}
-          </button>
-          {inLobby && you?.isHost ? (
-            <button
-              type="button"
-              className="btn"
-              disabled={!canStart}
-              onClick={startGame}
-            >
-              {t("startGame")}
-            </button>
-          ) : null}
-          {inLobby && !you?.isHost ? (
-            <span className="muted">{t("waitingHost")}</span>
-          ) : null}
-        </div>
-        {!canStart && inLobby && you?.isHost && match.players.length >= 2 ? (
-          <p className="muted">{t("waitingAssetsReady")}</p>
-        ) : !canStart && inLobby && you?.isHost ? (
-          <p className="muted">{t("needPlayers")}</p>
-        ) : null}
         {inLobby && (
-          <AssetLoadingBar
-            state={assetState}
-            playersReady={snapshot.assetsReadyPlayerIds.length}
-            playersTotal={match.players.filter((p) => !p.isBot).length}
-          />
+          <div className="table-bar-meta">
+            <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              {t("lobby")} · {snapshot.roomCode}
+              <RulesGuide />
+            </h2>
+            <p className="muted">{t("shareLink")}: {shareUrl}</p>
+            <div className="row">
+              <button type="button" className="btn ghost" onClick={copyLink}>
+                {copied ? t("copied") : t("copyLink")}
+              </button>
+              {you?.isHost ? (
+                <button type="button" className="btn" disabled={!canStart} onClick={startGame}>
+                  {t("startGame")}
+                </button>
+              ) : null}
+              {!you?.isHost ? (
+                <span className="muted">{t("waitingHost")}</span>
+              ) : null}
+            </div>
+            {!canStart && you?.isHost && match.players.length >= 2 ? (
+              <p className="muted">{t("waitingAssetsReady")}</p>
+            ) : !canStart && you?.isHost ? (
+              <p className="muted">{t("needPlayers")}</p>
+            ) : null}
+            <AssetLoadingBar
+              state={assetState}
+              playersReady={snapshot.assetsReadyPlayerIds.length}
+              playersTotal={match.players.filter((p) => !p.isBot).length}
+            />
+            {error && error !== "MISSING_TOKEN" ? (
+              <p className="error">{error}</p>
+            ) : null}
+            <div className="timer-settings">
+              <label>
+                {t("turnTimer")}
+                {you?.isHost && !snapshot.settings.debug ? (
+                  <input
+                    type="number"
+                    min={0}
+                    max={300}
+                    step={15}
+                    value={snapshot.settings.turnTimerSeconds}
+                    onChange={(e) => setTurnTimer(Number(e.target.value))}
+                  />
+                ) : (
+                  <span className="muted">
+                    {" "}
+                    {snapshot.settings.debug || snapshot.settings.turnTimerSeconds === 0
+                      ? t("turnTimerOff")
+                      : `${snapshot.settings.turnTimerSeconds}s`}
+                  </span>
+                )}
+              </label>
+              <p className="muted">{t("turnTimerHint")}</p>
+            </div>
+          </div>
         )}
-        {error && error !== "MISSING_TOKEN" ? (
-          <p className="error">{error}</p>
-        ) : null}
-
-        <div className="timer-settings">
-          <label>
-            {t("turnTimer")}
-            {inLobby && you?.isHost && !snapshot.settings.debug ? (
-              <input
-                type="number"
-                min={0}
-                max={300}
-                step={15}
-                value={snapshot.settings.turnTimerSeconds}
-                onChange={(e) => setTurnTimer(Number(e.target.value))}
-              />
-            ) : (
-              <span className="muted">
-                {" "}
-                {snapshot.settings.debug ||
-                snapshot.settings.turnTimerSeconds === 0
-                  ? t("turnTimerOff")
-                  : `${snapshot.settings.turnTimerSeconds}s`}
-              </span>
-            )}
-          </label>
-          {inLobby ? (
-            <p className="muted">{t("turnTimerHint")}</p>
-          ) : null}
-        </div>
-        </div>
 
         <div className="table-bar-players">
         <h3>{t("players")}</h3>
