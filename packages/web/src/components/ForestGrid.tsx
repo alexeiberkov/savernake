@@ -20,6 +20,10 @@ type Props = {
   preview?: { cardId: string; kind: "path" | "animal"; rotation: Rotation } | null;
   /** Pinned preview cell — shows a stronger ghost at this specific cell. */
   previewCell?: { r: number; c: number } | null;
+  /** Called when the pinned cell is clicked (rotate the preview). */
+  onRotatePreview?: () => void;
+  /** Called when the ✓ button on the pinned cell is clicked. */
+  onConfirmPreview?: () => void;
   /** Selected animal waiting for product choice (droplet). */
   selectedAnimalId?: string | null;
   /** Instance ids that just arrived — stronger place motion. */
@@ -41,6 +45,8 @@ export function ForestGrid({
   targetAnimalIds = [],
   preview,
   previewCell = null,
+  onRotatePreview,
+  onConfirmPreview,
   selectedAnimalId = null,
   justPlacedId,
   onIllegal,
@@ -186,6 +192,10 @@ export function ForestGrid({
               !card && !isLegal && !inOccupied ? " growth-slot" : ""
             }`}
             onClick={() => {
+              if (isPinned && onRotatePreview) {
+                onRotatePreview();
+                return;
+              }
               if (isLegal && onPlace) {
                 onPlace({ r, c });
                 return;
@@ -313,6 +323,16 @@ export function ForestGrid({
                 </motion.span>
               )}
             </AnimatePresence>
+            {isPinned && onConfirmPreview && (
+              <button
+                type="button"
+                className="forest-confirm-btn"
+                onClick={(e) => { e.stopPropagation(); onConfirmPreview(); }}
+                title="Подтвердить"
+              >
+                ✓
+              </button>
+            )}
           </motion.div>
         );
       })}
