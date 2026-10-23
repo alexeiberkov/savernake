@@ -22,6 +22,7 @@ import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
 import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
 import { CopyDebugState } from "../components/CopyDebugState";
+import { TurnStatusBar } from "../components/TurnStatusBar";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
@@ -250,6 +251,18 @@ export function RoomPage() {
   const localTurnActive = Boolean(isMyTurn || pendingMine);
 
   return (
+    <>
+      {!inLobby && match.phase === "turn" && turnPlayer && (
+        <TurnStatusBar
+          playerName={turnPlayer.isBot ? t("computer") : turnPlayer.name}
+          isMyTurn={Boolean(isMyTurn)}
+          round={match.round}
+          deadlineMs={snapshot.turnDeadlineMs}
+          timerSeconds={
+            snapshot.settings.debug ? 0 : snapshot.settings.turnTimerSeconds
+          }
+        />
+      )}
     <div
       className={`table-layout${inLobby ? " lobby-mode" : ""}${advisorCursorClass}`}
     >
@@ -731,5 +744,6 @@ export function RoomPage() {
         </AnimatePresence>
       </section>
     </div>
+    </>
   );
 }

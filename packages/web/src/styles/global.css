@@ -1394,3 +1394,62 @@ label.debug-toggle input {
       16 16,
     pointer;
 }
+
+/* ── Turn Status Bar (fixed top overlay) ─────────────────────────────── */
+.turn-status-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.45rem 1.25rem;
+  min-height: 2.75rem;
+  background: rgba(20, 36, 28, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(232, 220, 196, 0.1);
+  font-size: 0.9rem;
+}
+
+.turn-status-bar.mine {
+  background: linear-gradient(
+    90deg,
+    rgba(212, 161, 90, 0.22) 0%,
+    rgba(20, 36, 28, 0.94) 65%
+  );
+  border-bottom-color: rgba(212, 161, 90, 0.28);
+}
+
+.turn-status-bar__player {
+  flex: 1;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.turn-status-bar.mine .turn-status-bar__player {
+  color: var(--amber-bright);
+}
+
+.turn-status-bar__round {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.turn-status-bar__timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  min-width: 3.5ch;
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.turn-status-bar__timer.urgent {
+  color: var(--danger);
+}
+
+/* push content down when the bar is mounted */
+body:has(.turn-status-bar) .main {
+  padding-top: 2.75rem;
+}
