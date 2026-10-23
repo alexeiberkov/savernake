@@ -212,12 +212,14 @@ export function RoomPage() {
   const turnPlayer = match.players.find((p) => p.seat === match.turnSeat);
   const otherPlayers = match.players.filter((p) => p.id !== snapshot.youPlayerId);
 
-  const sortedPlayersForScoring = (() => {
-    if (match.phase !== "finished") return [];
+  const orderedPlayers = (() => {
     const me = match.players.find((p) => p.id === snapshot.youPlayerId);
     const rest = match.players.filter((p) => p.id !== snapshot.youPlayerId);
     return me ? [me, ...rest] : [...match.players];
   })();
+
+  const sortedPlayersForScoring =
+    match.phase === "finished" ? orderedPlayers : [];
 
   const allFinishedAnimsDone =
     match.phase === "finished" &&
@@ -315,7 +317,7 @@ export function RoomPage() {
         <div className="table-bar-players">
         <h3>{t("players")}</h3>
         <ul className="player-list">
-          {match.players.map((p) => (
+          {orderedPlayers.map((p) => (
             <motion.li
               key={p.id}
               layout
