@@ -1776,3 +1776,16 @@ label.debug-toggle input {
   border-radius: 4px; color: var(--text-muted); line-height: 1;
 }
 .turn-status-bar__share:hover { color: var(--text); }
+
+/* ── Online/offline badge next to player name in forest headers ───────── */
+.player-online-badge {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #6abf6a;
+  opacity: 0.85;
+}
+.player-online-badge.offline {
+  color: var(--text-muted);
+  opacity: 0.6;
+}

@@ -517,6 +517,11 @@ export function RoomPage() {
                 <div key={p.id} style={{ marginTop: "1.75rem" }}>
                   <h3 className="muted" style={{ margin: "0 0 0.5rem" }}>
                     {p.isBot ? t("computer") : p.name}
+                    {!p.isBot && (
+                      <span className={`player-online-badge${p.connected ? "" : " offline"}`}>
+                        {p.connected ? t("connected") : t("disconnected")}
+                      </span>
+                    )}
                   </h3>
                   <ForestGrid
                     forest={p.forest}
@@ -681,6 +686,11 @@ export function RoomPage() {
                 <div key={p.id} style={{ marginTop: "1.75rem" }}>
                   <h3 className="muted" style={{ margin: "0 0 0.5rem" }}>
                     {p.isBot ? t("computer") : p.name}
+                    {!p.isBot && (
+                      <span className={`player-online-badge${p.connected ? "" : " offline"}`}>
+                        {p.connected ? t("connected") : t("disconnected")}
+                      </span>
+                    )}
                   </h3>
                   <ForestGrid
                     forest={p.forest}
