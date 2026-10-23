@@ -59,6 +59,27 @@ export function RoomPage() {
   useTurnBeep(isMyTurnEarly, soundEnabled);
   const illegalTimer = useRef<number | null>(null);
 
+  const confirmPlacement = useCallback(() => {
+    if (!selectedSlot || !previewCell) return;
+    sendIntent({ type: "pickAndPlace", slot: selectedSlot, cell: previewCell, rotation });
+    setSelectedSlot(null);
+    setPreviewCell(null);
+  }, [selectedSlot, previewCell, rotation, sendIntent]);
+
+  useEffect(() => {
+    if (!isMyTurnEarly) setPreviewCell(null);
+  }, [isMyTurnEarly]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!previewCell) return;
+      if (e.key === "Enter") { e.preventDefault(); confirmPlacement(); }
+      if (e.key === "Escape") { e.preventDefault(); setPreviewCell(null); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewCell, confirmPlacement]);
+
   const shareUrl = useMemo(() => {
     if (!code) return "";
     return `${window.location.origin}/r/${code.toUpperCase()}`;
@@ -209,11 +230,6 @@ export function RoomPage() {
     you.seat === match.turnSeat &&
     !match.actedSeatsThisRound.includes(you.seat);
 
-  // Clear preview when turn is no longer ours (auto-play, timer, etc.)
-  useEffect(() => {
-    if (!isMyTurn) setPreviewCell(null);
-  }, [isMyTurn]);
-
   const pendingMine =
     match.pendingAdvisor && match.pendingAdvisor.playerId === you?.id
       ? match.pendingAdvisor
@@ -264,24 +280,6 @@ export function RoomPage() {
     if (illegalTimer.current) window.clearTimeout(illegalTimer.current);
     illegalTimer.current = window.setTimeout(() => setIllegalNote(false), 900);
   }
-
-  const confirmPlacement = useCallback(() => {
-    if (!selectedSlot || !previewCell) return;
-    sendIntent({ type: "pickAndPlace", slot: selectedSlot, cell: previewCell, rotation });
-    setSelectedSlot(null);
-    setPreviewCell(null);
-  }, [selectedSlot, previewCell, rotation, sendIntent]);
-
-  // Keyboard: Enter to confirm placement, Escape to cancel preview.
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (!previewCell) return;
-      if (e.key === "Enter") { e.preventDefault(); confirmPlacement(); }
-      if (e.key === "Escape") { e.preventDefault(); setPreviewCell(null); }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [previewCell, confirmPlacement]);
 
   const advisorCursorClass =
     pendingMine?.kind === "water"
