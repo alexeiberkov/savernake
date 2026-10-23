@@ -12,6 +12,7 @@ import {
 } from "@savernake/shared";
 import { useLocale } from "../i18n/LocaleContext";
 import { joinRoomApi, useRoomSession } from "../hooks/useRoomSession";
+import { useTurnBeep } from "../hooks/useTurnBeep";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PlaceholderCard } from "../components/PlaceholderCard";
@@ -193,6 +194,9 @@ export function RoomPage() {
     you != null &&
     you.seat === match.turnSeat &&
     !match.actedSeatsThisRound.includes(you.seat);
+
+  useTurnBeep(Boolean(isMyTurn));
+
   const pendingMine =
     match.pendingAdvisor && match.pendingAdvisor.playerId === you?.id
       ? match.pendingAdvisor
