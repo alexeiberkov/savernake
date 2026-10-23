@@ -453,7 +453,7 @@ export class RoomManager {
       room.timerHandle = setTimeout(() => {
         const updated = this.playBotTurn(code);
         if (updated && this.onTimerFire) this.onTimerFire(updated);
-      }, 700);
+      }, 2500);
       return;
     }
     if (room.settings.debug) {
