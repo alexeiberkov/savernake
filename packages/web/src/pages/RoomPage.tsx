@@ -48,6 +48,15 @@ export function RoomPage() {
   const [scoringStarted, setScoringStarted] = useState(false);
   const prevFinishedPhase = useRef(false);
   const prevForestLen = useRef(0);
+  const [soundEnabled, toggleSound] = useSoundEnabled();
+  // Must be computed before any early return so useTurnBeep hook count is stable.
+  const isMyTurnEarly = Boolean(
+    snapshot?.match.phase === "turn" &&
+      you != null &&
+      you.seat === snapshot?.match.turnSeat &&
+      !snapshot?.match.actedSeatsThisRound.includes(you.seat),
+  );
+  useTurnBeep(isMyTurnEarly, soundEnabled);
   const illegalTimer = useRef<number | null>(null);
 
   const shareUrl = useMemo(() => {
@@ -199,9 +208,6 @@ export function RoomPage() {
     you != null &&
     you.seat === match.turnSeat &&
     !match.actedSeatsThisRound.includes(you.seat);
-
-  const [soundEnabled, toggleSound] = useSoundEnabled();
-  useTurnBeep(Boolean(isMyTurn), soundEnabled);
 
   // Clear preview when turn is no longer ours (auto-play, timer, etc.)
   useEffect(() => {
