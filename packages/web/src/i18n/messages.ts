@@ -75,6 +75,7 @@ const en = {
   placingCard: "Placing",
   illegalPlace: "That cell is not allowed",
   scoreReveal: "Final scores",
+  scoringIn: "Scoring in {n}…",
   previewHint: "Preview — rotate, then place on a glow cell",
   lobbyReady: "Share the link and wait for friends. The table stays clear until the host starts.",
   turnTimer: "Turn timer",
@@ -181,6 +182,7 @@ const ru: Record<MessageKey, string> = {
   placingCard: "Укладка",
   illegalPlace: "Сюда нельзя",
   scoreReveal: "Итоговый счёт",
+  scoringIn: "Подсчёт очков через {n}…",
   previewHint: "Превью — поверните и положите на светящуюся клетку",
   lobbyReady:
     "Отправьте ссылку друзьям. Стол пуст, пока хост не начнёт игру.",
@@ -287,6 +289,7 @@ const uk: Record<MessageKey, string> = {
   placingCard: "Укладання",
   illegalPlace: "Сюди не можна",
   scoreReveal: "Підсумковий рахунок",
+  scoringIn: "Підрахунок очок через {n}…",
   previewHint: "Прев'ю — поверніть і покладіть на світну клітинку",
   lobbyReady:
     "Надішліть посилання друзям. Стіл порожній, поки хост не почне гру.",
@@ -392,6 +395,7 @@ const be: Record<MessageKey, string> = {
   placingCard: "Укладка",
   illegalPlace: "Сюды нельга",
   scoreReveal: "Выніковы лік",
+  scoringIn: "Падлік ачкоў праз {n}…",
   previewHint: "Прэв'ю — павярніце і пакладзіце на святлівую клетку",
   lobbyReady: "Дашліце спасылку сябрам. Стол пусты, пакуль хост не пачне гульню.",
   turnTimer: "Таймер ходу",

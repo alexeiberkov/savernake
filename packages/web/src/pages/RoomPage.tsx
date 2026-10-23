@@ -23,6 +23,7 @@ import { ScoreReveal } from "../components/ScoreReveal";
 import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
 import { CopyDebugState } from "../components/CopyDebugState";
 import { TurnStatusBar } from "../components/TurnStatusBar";
+import { ScoreCountdown } from "../components/ScoreCountdown";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
@@ -41,6 +42,7 @@ export function RoomPage() {
   const [justPlacedId, setJustPlacedId] = useState<string | null>(null);
   const [illegalNote, setIllegalNote] = useState(false);
   const [finishedAnimsDone, setFinishedAnimsDone] = useState(0);
+  const [scoringStarted, setScoringStarted] = useState(false);
   const prevFinishedPhase = useRef(false);
   const prevForestLen = useRef(0);
   const illegalTimer = useRef<number | null>(null);
@@ -61,6 +63,7 @@ export function RoomPage() {
     const isFinished = snapshot?.match.phase === "finished";
     if (prevFinishedPhase.current && !isFinished) {
       setFinishedAnimsDone(0);
+      setScoringStarted(false);
     }
     prevFinishedPhase.current = isFinished ?? false;
   }, [snapshot?.match.phase]);
@@ -386,8 +389,16 @@ export function RoomPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
             >
-              <AnimatePresence>
-                {allFinishedAnimsDone ? (
+              <AnimatePresence mode="wait">
+                {!scoringStarted ? (
+                  <motion.div
+                    key="countdown"
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ScoreCountdown onDone={() => setScoringStarted(true)} />
+                  </motion.div>
+                ) : allFinishedAnimsDone ? (
                   <motion.div
                     key="score-reveal"
                     initial={{ opacity: 0, y: 10 }}
@@ -404,7 +415,7 @@ export function RoomPage() {
                   </motion.div>
                 ) : null}
               </AnimatePresence>
-              {sortedPlayersForScoring.map((p, i) => (
+              {scoringStarted && sortedPlayersForScoring.map((p, i) => (
                 <div key={p.id} style={{ marginTop: i > 0 ? "1.75rem" : 0 }}>
                   <AnimatedForestGrid
                     forest={p.forest}

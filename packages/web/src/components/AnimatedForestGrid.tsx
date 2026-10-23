@@ -8,9 +8,9 @@ import {
 import { ForestGrid } from "./ForestGrid";
 import { useLocale } from "../i18n/LocaleContext";
 
-const ANIMAL_FOCUS_MS = 500;
-const PATH_STEP_MS = 290;
-const ANIMAL_SCORE_MS = 650;
+const ANIMAL_FOCUS_MS = 900;
+const PATH_STEP_MS = 500;
+const ANIMAL_SCORE_MS = 1200;
 
 type AnimStep = {
   activeIds: ReadonlySet<string>;
