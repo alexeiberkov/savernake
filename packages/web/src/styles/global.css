@@ -1694,49 +1694,41 @@ label.debug-toggle input {
 }
 
 /* ── Confirm button overlaid on pinned forest cell ───────────────────── */
-.forest-confirm-btn {
+/* shared base for both overlay buttons */
+.forest-confirm-btn,
+.forest-rotate-btn {
   position: absolute;
-  left: -1.15rem;
-  top: 50%;
-  transform: translateY(-50%);
   width: 2rem;
   height: 2rem;
   border-radius: 50%;
   border: 2px solid rgba(20, 36, 28, 0.9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  z-index: 20;
+  padding: 0;
+  line-height: 1;
+}
+
+/* ✓ — bottom-left corner */
+.forest-confirm-btn {
+  bottom: -0.8rem;
+  left: -0.8rem;
   background: var(--amber);
   color: #1a2e24;
   font-size: 1.1rem;
   font-weight: 900;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  z-index: 20;
-  padding: 0;
-  line-height: 1;
 }
-.forest-confirm-btn:hover { background: var(--amber-bright); transform: translateY(-50%) scale(1.1); }
+.forest-confirm-btn:hover { background: var(--amber-bright); transform: scale(1.12); }
 
-/* ── Rotate button overlaid on pinned forest cell ────────────────────── */
+/* ↻ — top-right corner */
 .forest-rotate-btn {
-  position: absolute;
-  left: -1.15rem;
-  top: calc(50% - 2.4rem);
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  border: 2px solid rgba(20, 36, 28, 0.9);
+  top: -0.8rem;
+  right: -0.8rem;
   background: rgba(60, 80, 60, 0.92);
   color: var(--text);
   font-size: 1.15rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  z-index: 20;
-  padding: 0;
-  line-height: 1;
 }
-.forest-rotate-btn:hover { background: var(--bg-leaf); transform: rotate(30deg); }
+.forest-rotate-btn:hover { background: var(--bg-leaf); transform: rotate(45deg) scale(1.1); }
