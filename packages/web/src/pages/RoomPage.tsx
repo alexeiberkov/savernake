@@ -55,6 +55,16 @@ export function RoomPage() {
   useTurnBeep(isMyTurnEarly, soundEnabled);
   const illegalTimer = useRef<number | null>(null);
 
+  // Compute early (before any return) so the hook count is stable.
+  const allFinishedAnimsDoneEarly = Boolean(
+    snapshot?.match.phase === "finished" &&
+    finishedAnimsDone >= (snapshot?.match.players.length ?? 0),
+  );
+  useEffect(() => {
+    if (allFinishedAnimsDoneEarly && soundEnabled) playFanfare();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allFinishedAnimsDoneEarly]);
+
   const confirmPlacement = useCallback(() => {
     if (!selectedSlot || !previewCell) return;
     sendIntent({ type: "pickAndPlace", slot: selectedSlot, cell: previewCell, rotation });
@@ -267,11 +277,6 @@ export function RoomPage() {
   const allFinishedAnimsDone =
     match.phase === "finished" &&
     finishedAnimsDone >= match.players.length;
-
-  useEffect(() => {
-    if (allFinishedAnimsDone && soundEnabled) playFanfare();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allFinishedAnimsDone]);
 
   const preview =
     selectedMarket?.cardId && selectedKind
