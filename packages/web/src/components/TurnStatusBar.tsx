@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FOREST_TARGET_CARDS } from "@savernake/shared";
 import { useLocale } from "../i18n/LocaleContext";
 
 type Props = {
@@ -44,7 +45,7 @@ export function TurnStatusBar({
       <span className="turn-status-bar__player">{label}</span>
       <span className="turn-status-bar__sep" aria-hidden />
       <span className="turn-status-bar__round">
-        {t("round")} {round}
+        {t("round")} {round} {t("of")} {FOREST_TARGET_CARDS}
       </span>
       {left != null && (
         <>

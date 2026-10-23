@@ -6,6 +6,7 @@ import {
   openWaterFoods,
   remainingRoundsFromForests,
   remainingRoundsFromPathDeck,
+  FOREST_TARGET_CARDS,
   type AdvisorSlot,
   type Food,
   type Rotation,
@@ -549,7 +550,7 @@ export function RoomPage() {
                   />
 
                   <p className="muted">
-                    {t("round")} {match.round} · {t("firstPlayer")}{" "}
+                    {t("round")} {match.round} {t("of")} {FOREST_TARGET_CARDS} · {t("firstPlayer")}{" "}
                     {match.firstPlayerSeat + 1}
                   </p>
                   <AnimatePresence mode="wait">
