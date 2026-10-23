@@ -10,7 +10,7 @@ import {
 } from "@savernake/shared";
 import { useLocale } from "../i18n/LocaleContext";
 import { joinRoomApi, useRoomSession } from "../hooks/useRoomSession";
-import { useTurnBeep, useSoundEnabled } from "../hooks/useTurnBeep";
+import { useTurnBeep, useSoundEnabled, playFanfare } from "../hooks/useTurnBeep";
 import { useAssetPreloader } from "../hooks/useAssetPreloader";
 import { AssetLoadingBar } from "../components/AssetLoadingBar";
 import { ForestGrid } from "../components/ForestGrid";
@@ -267,6 +267,11 @@ export function RoomPage() {
   const allFinishedAnimsDone =
     match.phase === "finished" &&
     finishedAnimsDone >= match.players.length;
+
+  useEffect(() => {
+    if (allFinishedAnimsDone && soundEnabled) playFanfare();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allFinishedAnimsDone]);
 
   const preview =
     selectedMarket?.cardId && selectedKind
