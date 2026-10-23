@@ -118,20 +118,22 @@ export function LandingPage() {
               onChange={(e) => setTurnTimerSeconds(Number(e.target.value))}
             />
           </label>
-          <label className="debug-toggle">
-            <input
-              type="checkbox"
-              checked={debug}
-              onChange={(e) => setDebug(e.target.checked)}
-            />
-            {t("debugPlay")}
-          </label>
+          {import.meta.env.DEV && (
+            <label className="debug-toggle">
+              <input
+                type="checkbox"
+                checked={debug}
+                onChange={(e) => setDebug(e.target.checked)}
+              />
+              {t("debugPlay")}
+            </label>
+          )}
           <button className="btn" type="submit" disabled={busy}>
             {t("createRoom")}
           </button>
         </form>
         <p className="muted" style={{ marginTop: "0.65rem" }}>
-          {t("turnTimerHint")} {t("debugPlayHint")}
+          {t("turnTimerHint")} {import.meta.env.DEV && t("debugPlayHint")}
         </p>
       </motion.div>
 
