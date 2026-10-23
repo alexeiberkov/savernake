@@ -49,6 +49,8 @@ export type Room = {
   lastAutoPlayNotice: AutoPlayNotice | null;
   timerHandle: ReturnType<typeof setTimeout> | null;
   autoPlaySeq: number;
+  /** Player IDs that have signalled their assets are loaded. */
+  assetsReadyIds: Set<string>;
 };
 
 export type TimerBroadcast = (room: Room) => void;
@@ -115,6 +117,7 @@ export class RoomManager {
       lastAutoPlayNotice: null,
       timerHandle: null,
       autoPlaySeq: 0,
+      assetsReadyIds: new Set(),
     };
     this.rooms.set(code, room);
     return {
@@ -482,7 +485,21 @@ export class RoomManager {
     return this.rooms.get(code.toUpperCase());
   }
 
+  markAssetsReady(code: string, playerId: string): Room | null {
+    const room = this.rooms.get(code.toUpperCase());
+    if (!room) return null;
+    room.assetsReadyIds.add(playerId);
+    return room;
+  }
+
+  allAssetsReady(room: Room): boolean {
+    const humanPlayers = room.match.players.filter((p) => !p.isBot);
+    return humanPlayers.length > 0 &&
+      humanPlayers.every((p) => room.assetsReadyIds.has(p.id));
+  }
+
   snapshot(room: Room, youPlayerId: string | null): RoomSnapshot {
+    const humanPlayers = room.match.players.filter((p) => !p.isBot);
     return {
       roomCode: room.code,
       sharePath: `/r/${room.code}`,
@@ -495,6 +512,9 @@ export class RoomManager {
       lastAutoPlayNotice: room.lastAutoPlayNotice
         ? { ...room.lastAutoPlayNotice }
         : null,
+      assetsReadyPlayerIds: [...room.assetsReadyIds],
+      allAssetsReady: humanPlayers.length > 0 &&
+        humanPlayers.every((p) => room.assetsReadyIds.has(p.id)),
     };
   }
 }

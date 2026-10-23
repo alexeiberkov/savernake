@@ -184,6 +184,10 @@ export type RoomSnapshot = {
   turnDeadlineMs: number | null;
   /** Brief notice after server auto-played a turn. */
   lastAutoPlayNotice: AutoPlayNotice | null;
+  /** Player IDs that have signalled assets loaded. */
+  assetsReadyPlayerIds: string[];
+  /** True when every human player has their assets ready. */
+  allAssetsReady: boolean;
 };
 
 export const ClientIntentSchema = z.discriminatedUnion("type", [

@@ -1732,3 +1732,24 @@ label.debug-toggle input {
   font-size: 1.15rem;
 }
 .forest-rotate-btn:hover { background: var(--bg-leaf); transform: rotate(45deg) scale(1.1); }
+
+/* ── Asset loading progress bar ─────────────────────────────────────── */
+.asset-loading-bar {
+  margin: 0.65rem 0 0.25rem;
+}
+.asset-loading-bar__track {
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.asset-loading-bar__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber), var(--amber-bright));
+  border-radius: 2px;
+}
+.asset-loading-bar__label {
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

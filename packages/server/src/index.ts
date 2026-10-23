@@ -72,6 +72,19 @@ io.on("connection", (socket) => {
   );
 
   socket.on(
+    "player:assetsReady",
+    (_payload: unknown, ack?: (r: { ok: boolean }) => void) => {
+      const code = socket.data.roomCode as string | undefined;
+      const playerId = socket.data.playerId as string | undefined;
+      if (!code || !playerId) { ack?.({ ok: false }); return; }
+      const room = rooms.markAssetsReady(code, playerId);
+      if (!room) { ack?.({ ok: false }); return; }
+      io.to(code).emit("room:update", rooms.snapshot(room, null));
+      ack?.({ ok: true });
+    },
+  );
+
+  socket.on(
     "room:start",
     (_payload: unknown, ack?: (r: { ok: boolean; error?: string }) => void) => {
       const code = socket.data.roomCode as string | undefined;

@@ -14,6 +14,8 @@ import {
 import { useLocale } from "../i18n/LocaleContext";
 import { joinRoomApi, useRoomSession } from "../hooks/useRoomSession";
 import { useTurnBeep, useSoundEnabled } from "../hooks/useTurnBeep";
+import { useAssetPreloader } from "../hooks/useAssetPreloader";
+import { AssetLoadingBar } from "../components/AssetLoadingBar";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PathDeckStack } from "../components/PathDeckStack";
@@ -32,8 +34,9 @@ const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 export function RoomPage() {
   const { code } = useParams();
   const { t, locale } = useLocale();
-  const { snapshot, error, startGame, setTurnTimer, sendIntent, you } =
+  const { snapshot, error, startGame, signalAssetsReady, setTurnTimer, sendIntent, you } =
     useRoomSession(code);
+  const assetState = useAssetPreloader();
   const [copied, setCopied] = useState(false);
   const [joinName, setJoinName] = useState("");
   const [joinBusy, setJoinBusy] = useState(false);
@@ -79,6 +82,11 @@ export function RoomPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [previewCell, confirmPlacement]);
+
+  // Signal server when all local assets are loaded.
+  useEffect(() => {
+    if (assetState.done) signalAssetsReady();
+  }, [assetState.done, signalAssetsReady]);
 
   const shareUrl = useMemo(() => {
     if (!code) return "";
@@ -221,7 +229,8 @@ export function RoomPage() {
     Boolean(you?.isHost) &&
     inLobby &&
     match.players.length >= 2 &&
-    match.players.length <= 4;
+    match.players.length <= 4 &&
+    snapshot.allAssetsReady;
 
   const myForest = you?.forest ?? [];
   const isMyTurn =
@@ -335,9 +344,18 @@ export function RoomPage() {
             <span className="muted">{t("waitingHost")}</span>
           ) : null}
         </div>
-        {!canStart && inLobby && you?.isHost ? (
+        {!canStart && inLobby && you?.isHost && match.players.length >= 2 ? (
+          <p className="muted">{t("waitingAssetsReady")}</p>
+        ) : !canStart && inLobby && you?.isHost ? (
           <p className="muted">{t("needPlayers")}</p>
         ) : null}
+        {inLobby && (
+          <AssetLoadingBar
+            state={assetState}
+            playersReady={snapshot.assetsReadyPlayerIds.length}
+            playersTotal={match.players.filter((p) => !p.isBot).length}
+          />
+        )}
         {error && error !== "MISSING_TOKEN" ? (
           <p className="error">{error}</p>
         ) : null}

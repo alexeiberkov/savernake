@@ -56,6 +56,10 @@ export function useRoomSession(code: string | undefined) {
     });
   }, [socket]);
 
+  const signalAssetsReady = useCallback(() => {
+    socket?.emit("player:assetsReady", {}, () => {});
+  }, [socket]);
+
   const setTurnTimer = useCallback(
     (seconds: number) => {
       socket?.emit(
@@ -93,6 +97,7 @@ export function useRoomSession(code: string | undefined) {
     snapshot,
     error,
     startGame,
+    signalAssetsReady,
     setTurnTimer,
     sendIntent,
     you,
