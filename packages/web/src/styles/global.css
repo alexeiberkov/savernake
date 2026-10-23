@@ -1159,15 +1159,47 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
 }
 
 .rotate-preview {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .rotate-preview .ph-card {
-  width: 3.4rem;
-  height: 3.4rem;
+  width: 7rem;
+  height: 7rem;
   min-height: 0;
+}
+
+.place-toolbar__controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.confirm-overlay-btn {
+  position: absolute;
+  top: 50%;
+  right: -1.4rem;
+  transform: translateY(-50%);
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--amber);
+  color: #1a2e24;
+  font-size: 1.2rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(212,161,90,0.5);
+  z-index: 10;
+}
+.confirm-overlay-btn:hover {
+  background: var(--amber-bright);
 }
 
 .forest-card-slot,

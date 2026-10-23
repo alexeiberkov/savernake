@@ -602,58 +602,63 @@ export function RoomPage() {
 
               {isMyTurn && !pendingMine ? (
                 <div className="place-toolbar">
-                  <motion.button
-                    type="button"
-                    className="btn ghost"
-                    whileTap={{ rotate: 15 }}
-                    onClick={() =>
-                      setRotation(
-                        ROTATIONS[
-                          (ROTATIONS.indexOf(rotation) + 1) % ROTATIONS.length
-                        ]!,
-                      )
-                    }
-                  >
-                    {t("rotate")} ({rotation}°)
-                  </motion.button>
                   {preview ? (
                     <motion.div
                       className="rotate-preview"
                       initial={{ opacity: 0, scale: 0.85 }}
                       animate={{ opacity: 1, scale: 1 }}
+                      onDoubleClick={() =>
+                        setRotation(
+                          ROTATIONS[
+                            (ROTATIONS.indexOf(rotation) + 1) % ROTATIONS.length
+                          ]!,
+                        )
+                      }
+                      title={t("rotate")}
                     >
-                      <span className="muted">{t("previewHint")}</span>
                       <PlaceholderCard
                         cardId={preview.cardId}
                         kind={preview.kind}
                         rotation={preview.rotation}
-                        compact
                         showPopover={false}
                       />
+                      <AnimatePresence>
+                        {previewCell ? (
+                          <motion.button
+                            key="confirm"
+                            type="button"
+                            className="confirm-overlay-btn"
+                            initial={{ opacity: 0, scale: 0.7 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.7 }}
+                            onClick={confirmPlacement}
+                            title={t("confirmPlace")}
+                          >
+                            ✓
+                          </motion.button>
+                        ) : null}
+                      </AnimatePresence>
                     </motion.div>
                   ) : null}
-                  <AnimatePresence>
-                    {previewCell ? (
-                      <motion.button
-                        key="confirm"
-                        type="button"
-                        className="btn"
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        onClick={confirmPlacement}
-                      >
-                        {t("confirmPlace")} ↵
-                      </motion.button>
-                    ) : null}
-                  </AnimatePresence>
-                  {selectedSlot ? (
-                    <p className="muted" style={{ flexBasis: "100%", margin: 0 }}>
-                      {previewCell
-                        ? t("previewPinnedHint")
-                        : t("previewHint")}
+                  <div className="place-toolbar__controls">
+                    <motion.button
+                      type="button"
+                      className="btn ghost"
+                      whileTap={{ rotate: 15 }}
+                      onClick={() =>
+                        setRotation(
+                          ROTATIONS[
+                            (ROTATIONS.indexOf(rotation) + 1) % ROTATIONS.length
+                          ]!,
+                        )
+                      }
+                    >
+                      {t("rotate")} ({rotation}°)
+                    </motion.button>
+                    <p className="muted" style={{ margin: "0.25rem 0 0" }}>
+                      {previewCell ? t("previewPinnedHint") : t("previewHint")}
                     </p>
-                  ) : null}
+                  </div>
                   <AnimatePresence>
                     {illegalNote ? (
                       <motion.span

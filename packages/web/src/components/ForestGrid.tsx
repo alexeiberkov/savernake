@@ -97,14 +97,14 @@ export function ForestGrid({
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
-    const maxCell = 200;
+    const maxCell = 260;
     const fit = () => {
       const parent = el.parentElement;
       const width = parent?.clientWidth ?? el.clientWidth;
       const gap = Number.parseFloat(getComputedStyle(el).columnGap) || 0;
       const byW = (width - gap * Math.max(0, bounds.cols - 1)) / bounds.cols;
-      // Keep the whole grid inside about 70% of the screen, independent of scroll.
-      const budget = Math.min(window.innerHeight * 0.7, 640);
+      // Keep the whole grid inside about 85% of the screen height.
+      const budget = Math.min(window.innerHeight * 0.85, 820);
       const byH = (budget - gap * Math.max(0, bounds.rows - 1)) / bounds.rows;
       const next = Math.round(Math.min(maxCell, byW, byH));
       setCellPx((prev) => (prev === next ? prev : next));
