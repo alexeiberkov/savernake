@@ -414,15 +414,13 @@ export function RoomPage() {
         {snapshot.settings.debug &&
         match.phase !== "lobby" &&
         match.phase !== "finished" ? (
-          <div className="debug-finish">
-            <button
-              type="button"
-              className="btn ghost"
-              onClick={() => sendIntent({ type: "finishGame" })}
-            >
-              {t("finishGame")}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn ghost debug-finish-btn"
+            onClick={() => sendIntent({ type: "finishGame" })}
+          >
+            {t("finishGame")}
+          </button>
         ) : null}
         <AnimatePresence mode="wait">
           {match.phase === "finished" ? (
