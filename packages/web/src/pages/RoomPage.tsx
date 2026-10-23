@@ -15,7 +15,6 @@ import { useAssetPreloader } from "../hooks/useAssetPreloader";
 import { AssetLoadingBar } from "../components/AssetLoadingBar";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
-import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
 import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
 import { CopyDebugState } from "../components/CopyDebugState";
@@ -373,41 +372,6 @@ export function RoomPage() {
           </div>
         )}
 
-        <div className="table-bar-players">
-        <h3>{t("players")}</h3>
-        <ul className="player-list">
-          {orderedPlayers.map((p) => (
-            <motion.li
-              key={p.id}
-              layout
-              animate={
-                match.phase === "turn" && match.turnSeat === p.seat
-                  ? { backgroundColor: "rgba(212,161,90,0.14)" }
-                  : { backgroundColor: "rgba(255,255,255,0.03)" }
-              }
-            >
-              <span className="player-name-row">
-                {p.isBot ? t("computer") : p.name}{" "}
-                {!inLobby && p.seat === match.firstPlayerSeat ? (
-                  <RoosterMark />
-                ) : null}
-                {p.isHost ? <span className="muted">({t("host")})</span> : null}
-                {p.id === snapshot.youPlayerId ? " ★" : ""}
-              </span>
-              <span className="muted">
-                {t("cards")} {p.cardCount}/16
-                {typeof p.score === "number" ? ` · ${t("score")} ${p.score}` : ""}
-                {" · "}
-                {p.isBot
-                  ? t("computerStatus")
-                  : p.connected
-                    ? t("connected")
-                    : t("disconnected")}
-              </span>
-            </motion.li>
-          ))}
-        </ul>
-        </div>
       </section>
 
       <section className="panel play-panel">
