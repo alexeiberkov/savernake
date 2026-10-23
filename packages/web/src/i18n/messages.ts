@@ -81,7 +81,7 @@ const en = {
   previewPinnedHint: "Move to another cell or press Enter / Confirm to place",
   lobbyReady: "Share the link and wait for friends. The table stays clear until the host starts.",
   turnTimer: "Turn timer",
-  turnTimerHint: "Seconds per turn (30–300). Default 90. Use 0 to disable.",
+  turnTimerHint: "Seconds per turn (30–300). Default 120. Use 0 to disable.",
   turnTimerOff: "Off",
   debugPlay: "Debug",
   debugPlayHint: "Play alone. The computer takes the other seat and plays its turns.",
@@ -205,7 +205,7 @@ const ru: Record<MessageKey, string> = {
   lobbyReady:
     "Отправьте ссылку друзьям. Стол пуст, пока хост не начнёт игру.",
   turnTimer: "Таймер хода",
-  turnTimerHint: "Секунд на ход (30–300). По умолчанию 90. 0 — выключить.",
+  turnTimerHint: "Секунд на ход (30–300). По умолчанию 120. 0 — выключить.",
   turnTimerOff: "Выкл.",
   debugPlay: "Отладка",
   debugPlayHint:
@@ -328,7 +328,7 @@ const uk: Record<MessageKey, string> = {
   lobbyReady:
     "Надішліть посилання друзям. Стіл порожній, поки хост не почне гру.",
   turnTimer: "Таймер ходу",
-  turnTimerHint: "Секунд на хід (30–300). За замовчуванням 90. 0 — вимкнути.",
+  turnTimerHint: "Секунд на хід (30–300). За замовчуванням 120. 0 — вимкнути.",
   turnTimerOff: "Вимк.",
   debugPlay: "Налагодження",
   debugPlayHint: "Можна грати самому. Другий гравець — комп'ютер, він ходить сам.",
@@ -449,7 +449,7 @@ const be: Record<MessageKey, string> = {
   previewPinnedHint: "Перамясціце або націсніце Enter / Пацвердзіць",
   lobbyReady: "Дашліце спасылку сябрам. Стол пусты, пакуль хост не пачне гульню.",
   turnTimer: "Таймер ходу",
-  turnTimerHint: "Секунд на ход (30–300). Па змаўчанні 90. 0 — выключыць.",
+  turnTimerHint: "Секунд на ход (30–300). Па змаўчанні 120. 0 — выключыць.",
   turnTimerOff: "Выкл.",
   debugPlay: "Адладка",
   debugPlayHint: "Можна гуляць аднаму. Другі гулец — камп'ютар, ён ходзіць сам.",
