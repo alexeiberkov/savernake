@@ -6,7 +6,6 @@ import {
   openWaterFoods,
   remainingRoundsFromForests,
   remainingRoundsFromPathDeck,
-  FOREST_TARGET_CARDS,
   type AdvisorSlot,
   type Food,
   type Rotation,
@@ -19,8 +18,6 @@ import { AssetLoadingBar } from "../components/AssetLoadingBar";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PathDeckStack } from "../components/PathDeckStack";
-import { TurnBanner } from "../components/TurnBanner";
-import { TurnTimer } from "../components/TurnTimer";
 import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
 import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
@@ -297,7 +294,6 @@ export function RoomPage() {
         ? " cursor-advisor-lair"
         : "";
 
-  const localTurnActive = Boolean(isMyTurn || pendingMine);
 
   return (
     <>
@@ -552,51 +548,22 @@ export function RoomPage() {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.35 }}
             >
-              <div className="play-status">
-                <div>
-                  <TurnBanner
-                    active={match.phase === "turn"}
-                    isMyTurn={Boolean(isMyTurn || pendingMine)}
-                    playerName={turnPlayer?.name}
-                  />
-                  <TurnTimer
-                    deadlineMs={snapshot.turnDeadlineMs}
-                    timerSeconds={
-                      snapshot.settings.debug
-                        ? 0
-                        : snapshot.settings.turnTimerSeconds
-                    }
-                    notice={snapshot.lastAutoPlayNotice}
-                    urgencyForLocalPlayer={localTurnActive}
-                  />
-
-                  <p className="muted">
-                    {t("round")} {match.round} {t("of")} {FOREST_TARGET_CARDS} · {t("firstPlayer")}{" "}
-                    {match.firstPlayerSeat + 1}
-                  </p>
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={
-                        pendingMine?.kind ??
-                        (isMyTurn ? "mine" : "wait")
-                      }
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                    >
-                      {pendingMine
-                        ? pendingMine.kind === "lair"
-                          ? t("pendingLair")
-                          : t("pendingWater")
-                        : isMyTurn
-                          ? t("yourTurn")
-                          : t("waitingTurn")}
-                    </motion.p>
-                  </AnimatePresence>
-                  {pendingMine?.kind === "water" ? (
-                    <p className="muted">{t("waterZeroHint")}</p>
-                  ) : null}
-                </div>
+              {pendingMine ? (
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={pendingMine.kind}
+                    className="muted"
+                    style={{ marginBottom: "0.5rem" }}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {pendingMine.kind === "lair" ? t("pendingLair") : t("pendingWater")}
+                    {pendingMine.kind === "water" ? ` — ${t("waterZeroHint")}` : ""}
+                  </motion.p>
+                </AnimatePresence>
+              ) : null}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
                 <PathDeckStack
                   pathRemaining={match.deckSizes.pathDeck}
                   roundsLeft={remainingRoundsFromForests(match.players)}
