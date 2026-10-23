@@ -516,6 +516,8 @@ export function RoomPage() {
                   </motion.p>
                 </AnimatePresence>
               ) : null}
+              <div className="game-two-col">
+              <div className="game-col-market">
               <h2>{t("market")}</h2>
               <MarketRow
                 market={match.market}
@@ -525,7 +527,6 @@ export function RoomPage() {
                 deckSizes={match.deckSizes}
                 onSelect={(slot) => setSelectedSlot(slot)}
               />
-
               {isMyTurn && !pendingMine && illegalNote ? (
                 <AnimatePresence>
                   <motion.span
@@ -539,8 +540,10 @@ export function RoomPage() {
                   </motion.span>
                 </AnimatePresence>
               ) : null}
+              </div>
 
-              <h2 style={{ marginTop: "1.25rem" }}>{t("yourForest")}</h2>
+              <div className="game-col-forest">
+              <h2>{t("yourForest")}</h2>
               {snapshot.settings.debug ? (
                 <CopyDebugState
                   snapshot={snapshot}
@@ -646,6 +649,8 @@ export function RoomPage() {
                 }}
                 onIllegal={showIllegalNote}
               />
+              </div>{/* game-col-forest */}
+              </div>{/* game-two-col */}
               {otherPlayers.map((p) => (
                 <div key={p.id} style={{ marginTop: "1.75rem" }}>
                   <h3 className="muted" style={{ margin: "0 0 0.5rem" }}>
