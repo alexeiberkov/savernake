@@ -6,6 +6,7 @@ import {
   type PlacedCard,
 } from "@savernake/shared";
 import { ForestGrid } from "./ForestGrid";
+import { AnimalBreakdownRow } from "./AnimalBreakdownRow";
 import { useLocale } from "../i18n/LocaleContext";
 
 const ANIMAL_FOCUS_MS = 900;
@@ -171,6 +172,15 @@ export function AnimatedForestGrid({
         }
         scoringActive={!isDone && Boolean(currentStep?.dimActive)}
       />
+      {isDone && (
+        <div className="animal-breakdown-list">
+          {forest
+            .filter((c) => c.kind === "animal")
+            .map((a) => (
+              <AnimalBreakdownRow key={a.instanceId} animal={a} forest={forest} />
+            ))}
+        </div>
+      )}
     </div>
   );
 }

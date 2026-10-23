@@ -1,4 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const SOUND_KEY = "savernake.sound";
 
 function playBeep() {
   try {
@@ -25,14 +27,29 @@ function playBeep() {
   }
 }
 
-/** Plays a beep when isMyTurn transitions false → true. */
-export function useTurnBeep(isMyTurn: boolean) {
+/** Returns [enabled, toggle] persisted to localStorage. */
+export function useSoundEnabled(): [boolean, () => void] {
+  const [enabled, setEnabled] = useState(
+    () => localStorage.getItem(SOUND_KEY) !== "off",
+  );
+  const toggle = useCallback(() => {
+    setEnabled((prev) => {
+      const next = !prev;
+      localStorage.setItem(SOUND_KEY, next ? "on" : "off");
+      return next;
+    });
+  }, []);
+  return [enabled, toggle];
+}
+
+/** Plays a beep when isMyTurn transitions false → true, if enabled. */
+export function useTurnBeep(isMyTurn: boolean, enabled = true) {
   const prev = useRef(false);
 
   useEffect(() => {
-    if (!prev.current && isMyTurn) {
+    if (!prev.current && isMyTurn && enabled) {
       playBeep();
     }
     prev.current = isMyTurn;
-  }, [isMyTurn]);
+  }, [isMyTurn, enabled]);
 }

@@ -1178,6 +1178,12 @@ button.forest-cell:disabled:not(.filled):not(.legal) {
   min-height: 0;
 }
 
+.forest-ghost.preview-pinned {
+  outline: 2px solid rgba(232, 192, 122, 0.85);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
 .forest-card-slot .ph-card {
   width: 100%;
   height: 100%;
@@ -1480,4 +1486,177 @@ label.debug-toggle input {
   font-family: var(--font-display);
   color: var(--amber-bright);
   line-height: 1;
+}
+
+/* ── Mute button in TurnStatusBar ────────────────────────────────────── */
+.turn-status-bar__mute {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  color: var(--text-muted);
+  line-height: 1;
+  margin-left: 0.25rem;
+}
+.turn-status-bar__mute:hover { color: var(--text); }
+
+/* ── Animal score breakdown ──────────────────────────────────────────── */
+.animal-breakdown-list { margin-top: 0.65rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.animal-breakdown-row {
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(232,220,196,0.1);
+  font-size: 0.82rem;
+}
+.animal-breakdown-row__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+.animal-breakdown-row__total { color: var(--amber-bright); font-weight: 700; }
+.animal-breakdown-row__detail { display: flex; flex-wrap: wrap; gap: 0.4rem; color: var(--text-muted); }
+.animal-breakdown-row__food { background: rgba(255,255,255,0.05); padding: 0.1rem 0.4rem; border-radius: 4px; }
+.animal-breakdown-row__overflow { opacity: 0.5; text-decoration: line-through; }
+
+/* ── Rules guide ─────────────────────────────────────────────────────── */
+.rules-guide-btn {
+  width: 2rem; height: 2rem; padding: 0; border-radius: 50%;
+  font-weight: 700; font-size: 0.95rem; flex-shrink: 0;
+}
+.rules-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
+}
+.rules-modal {
+  background: var(--bg-mid); border: 1px solid rgba(232,220,196,0.15);
+  border-radius: 12px; padding: 1.5rem; max-width: 560px; width: 100%;
+  max-height: 82vh; overflow-y: auto; position: relative;
+}
+.rules-modal__close {
+  position: absolute; top: 0.75rem; right: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+.rules-modal h2 { margin: 0 0 1.1rem; color: var(--amber-bright); }
+.rules-modal__body p { margin: 0.55rem 0; line-height: 1.55; }
+.rules-modal__body strong { color: var(--amber-bright); }
+
+/* ── Compact opponent forests ────────────────────────────────────────── */
+.opponents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+.opponent-card { }
+.opponent-card__header {
+  display: flex; align-items: center; gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.opponent-card__name { font-weight: 600; font-size: 0.9rem; flex: 1; color: var(--text-muted); }
+.opponent-card__expand {
+  background: none; border: none; cursor: pointer;
+  font-size: 0.8rem; color: var(--text-muted); padding: 0.1rem 0.4rem;
+  border-radius: 4px; border: 1px solid rgba(232,220,196,0.15);
+}
+.opponent-card__expand:hover { color: var(--text); }
+
+/* ── Mute button in TurnStatusBar ────────────────────────────────────── */
+.turn-status-bar__mute {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.turn-status-bar__mute:hover { color: var(--text); }
+
+/* ── Animal score breakdown ──────────────────────────────────────────── */
+.animal-breakdown-list {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.animal-breakdown-row {
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(232, 220, 196, 0.1);
+  font-size: 0.82rem;
+}
+.animal-breakdown-row__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.2rem;
+}
+.animal-breakdown-row__total {
+  color: var(--amber-bright);
+  font-weight: 700;
+}
+.animal-breakdown-row__detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  color: var(--text-muted);
+}
+.animal-breakdown-row__food {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+.animal-breakdown-row__overflow {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.animal-breakdown-row__capacity-note {
+  font-style: italic;
+}
+
+/* ── Rules guide ─────────────────────────────────────────────────────── */
+.rules-guide-btn {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.rules-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.rules-modal {
+  background: var(--bg-mid);
+  border: 1px solid rgba(232, 220, 196, 0.15);
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 540px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+.rules-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+}
+.rules-modal__body p {
+  margin: 0.5rem 0;
+  line-height: 1.55;
+}
+.rules-modal__body strong {
+  color: var(--amber-bright);
 }

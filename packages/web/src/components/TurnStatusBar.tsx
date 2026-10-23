@@ -7,6 +7,8 @@ type Props = {
   round: number;
   deadlineMs: number | null;
   timerSeconds: number;
+  soundEnabled?: boolean;
+  onToggleSound?: () => void;
 };
 
 export function TurnStatusBar({
@@ -15,6 +17,8 @@ export function TurnStatusBar({
   round,
   deadlineMs,
   timerSeconds,
+  soundEnabled = true,
+  onToggleSound,
 }: Props) {
   const { t } = useLocale();
   const [left, setLeft] = useState<number | null>(null);
@@ -49,6 +53,17 @@ export function TurnStatusBar({
             {left}s
           </span>
         </>
+      )}
+      {onToggleSound && (
+        <button
+          type="button"
+          className="turn-status-bar__mute"
+          onClick={onToggleSound}
+          title={soundEnabled ? "Mute turn sound" : "Unmute turn sound"}
+          aria-label={soundEnabled ? "Mute" : "Unmute"}
+        >
+          {soundEnabled ? "🔔" : "🔇"}
+        </button>
       )}
     </div>
   );

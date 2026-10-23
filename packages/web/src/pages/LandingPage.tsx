@@ -9,7 +9,7 @@ export function LandingPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [turnTimerSeconds, setTurnTimerSeconds] = useState(300);
+  const [turnTimerSeconds, setTurnTimerSeconds] = useState(90);
   const [debug, setDebug] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -12,7 +12,7 @@ import {
 } from "@savernake/shared";
 import { useLocale } from "../i18n/LocaleContext";
 import { joinRoomApi, useRoomSession } from "../hooks/useRoomSession";
-import { useTurnBeep } from "../hooks/useTurnBeep";
+import { useTurnBeep, useSoundEnabled } from "../hooks/useTurnBeep";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
 import { PlaceholderCard } from "../components/PlaceholderCard";
@@ -25,6 +25,7 @@ import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
 import { CopyDebugState } from "../components/CopyDebugState";
 import { TurnStatusBar } from "../components/TurnStatusBar";
 import { ScoreCountdown } from "../components/ScoreCountdown";
+import { RulesGuide } from "../components/RulesGuide";
 
 const ROTATIONS: Rotation[] = [0, 90, 180, 270];
 
@@ -38,6 +39,7 @@ export function RoomPage() {
   const [joinBusy, setJoinBusy] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<AdvisorSlot | null>(null);
+  const [previewCell, setPreviewCell] = useState<{ r: number; c: number } | null>(null);
   const [rotation, setRotation] = useState<Rotation>(0);
   const [waterAnimalId, setWaterAnimalId] = useState<string | null>(null);
   const [justPlacedId, setJustPlacedId] = useState<string | null>(null);
@@ -68,6 +70,9 @@ export function RoomPage() {
     }
     prevFinishedPhase.current = isFinished ?? false;
   }, [snapshot?.match.phase]);
+
+  // Clear preview when card selection changes or turn ends.
+  useEffect(() => { setPreviewCell(null); }, [selectedSlot]);
 
   useEffect(() => {
     const len = you?.forest.length ?? 0;
@@ -195,7 +200,13 @@ export function RoomPage() {
     you.seat === match.turnSeat &&
     !match.actedSeatsThisRound.includes(you.seat);
 
-  useTurnBeep(Boolean(isMyTurn));
+  const [soundEnabled, toggleSound] = useSoundEnabled();
+  useTurnBeep(Boolean(isMyTurn), soundEnabled);
+
+  // Clear preview when turn is no longer ours (auto-play, timer, etc.)
+  useEffect(() => {
+    if (!isMyTurn) setPreviewCell(null);
+  }, [isMyTurn]);
 
   const pendingMine =
     match.pendingAdvisor && match.pendingAdvisor.playerId === you?.id
@@ -248,6 +259,24 @@ export function RoomPage() {
     illegalTimer.current = window.setTimeout(() => setIllegalNote(false), 900);
   }
 
+  const confirmPlacement = useCallback(() => {
+    if (!selectedSlot || !previewCell) return;
+    sendIntent({ type: "pickAndPlace", slot: selectedSlot, cell: previewCell, rotation });
+    setSelectedSlot(null);
+    setPreviewCell(null);
+  }, [selectedSlot, previewCell, rotation, sendIntent]);
+
+  // Keyboard: Enter to confirm placement, Escape to cancel preview.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!previewCell) return;
+      if (e.key === "Enter") { e.preventDefault(); confirmPlacement(); }
+      if (e.key === "Escape") { e.preventDefault(); setPreviewCell(null); }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewCell, confirmPlacement]);
+
   const advisorCursorClass =
     pendingMine?.kind === "water"
       ? " cursor-advisor-water"
@@ -268,6 +297,8 @@ export function RoomPage() {
           timerSeconds={
             snapshot.settings.debug ? 0 : snapshot.settings.turnTimerSeconds
           }
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
         />
       )}
     <div
@@ -275,8 +306,9 @@ export function RoomPage() {
     >
       <section className="panel table-bar">
         <div className="table-bar-meta">
-        <h2>
+        <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           {inLobby ? t("lobby") : t("table")} · {snapshot.roomCode}
+          <RulesGuide />
         </h2>
         <p className="muted">
           {t("shareLink")}: {shareUrl}
@@ -596,9 +628,26 @@ export function RoomPage() {
                       />
                     </motion.div>
                   ) : null}
+                  <AnimatePresence>
+                    {previewCell ? (
+                      <motion.button
+                        key="confirm"
+                        type="button"
+                        className="btn"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        onClick={confirmPlacement}
+                      >
+                        {t("confirmPlace")} ↵
+                      </motion.button>
+                    ) : null}
+                  </AnimatePresence>
                   {selectedSlot ? (
                     <p className="muted" style={{ flexBasis: "100%", margin: 0 }}>
-                      {t("cardsStayPlaced")}
+                      {previewCell
+                        ? t("previewPinnedHint")
+                        : t("previewHint")}
                     </p>
                   ) : null}
                   <AnimatePresence>
@@ -691,6 +740,7 @@ export function RoomPage() {
                           .map((c) => c.instanceId)
                       : []
                 }
+                previewCell={previewCell}
                 onPlace={(cell) => {
                   if (!selectedSlot) return;
                   const ok = legal.some(
@@ -700,13 +750,7 @@ export function RoomPage() {
                     showIllegalNote();
                     return;
                   }
-                  sendIntent({
-                    type: "pickAndPlace",
-                    slot: selectedSlot,
-                    cell,
-                    rotation,
-                  });
-                  setSelectedSlot(null);
+                  setPreviewCell(cell);
                 }}
                 onSelectAnimal={(instanceId) => {
                   if (!pendingMine) return;

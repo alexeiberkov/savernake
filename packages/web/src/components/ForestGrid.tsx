@@ -18,6 +18,8 @@ type Props = {
   targetAnimalIds?: string[];
   /** Ghost preview on legal cells while choosing placement. */
   preview?: { cardId: string; kind: "path" | "animal"; rotation: Rotation } | null;
+  /** Pinned preview cell — shows a stronger ghost at this specific cell. */
+  previewCell?: { r: number; c: number } | null;
   /** Selected animal waiting for product choice (droplet). */
   selectedAnimalId?: string | null;
   /** Instance ids that just arrived — stronger place motion. */
@@ -38,6 +40,7 @@ export function ForestGrid({
   onSelectAnimal,
   targetAnimalIds = [],
   preview,
+  previewCell = null,
   selectedAnimalId = null,
   justPlacedId,
   onIllegal,
@@ -148,6 +151,7 @@ export function ForestGrid({
         const key = `${r},${c}`;
         const card = byCell.get(key);
         const isLegal = legalSet.has(key);
+        const isPinned = Boolean(previewCell && previewCell.r === r && previewCell.c === c);
         const animalClickable = Boolean(
           card?.kind === "animal" &&
             targetSet.has(card.instanceId) &&
@@ -264,6 +268,22 @@ export function ForestGrid({
                     compact
                     lairTokens={card.lairTokens}
                     waterBonus={card.waterBonus}
+                  />
+                </motion.div>
+              ) : isPinned && preview ? (
+                <motion.div
+                  key={`ghost-pinned-${preview.cardId}-${preview.rotation}`}
+                  className="forest-ghost preview-pinned"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 0.88, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <PlaceholderCard
+                    cardId={preview.cardId}
+                    kind={preview.kind}
+                    rotation={preview.rotation}
+                    compact
+                    showPopover={false}
                   />
                 </motion.div>
               ) : isLegal && preview ? (
