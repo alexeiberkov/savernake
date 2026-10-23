@@ -38,13 +38,17 @@ export function TurnStatusBar({
   return (
     <div className={`turn-status-bar${isMyTurn ? " mine" : ""}`}>
       <span className="turn-status-bar__player">{label}</span>
+      <span className="turn-status-bar__sep" aria-hidden />
       <span className="turn-status-bar__round">
         {t("round")} {round}
       </span>
       {left != null && (
-        <span className={`turn-status-bar__timer${left <= 10 ? " urgent" : ""}`}>
-          {left}s
-        </span>
+        <>
+          <span className="turn-status-bar__sep" aria-hidden />
+          <span className={`turn-status-bar__timer${left <= 10 ? " urgent" : ""}`}>
+            {left}s
+          </span>
+        </>
       )}
     </div>
   );

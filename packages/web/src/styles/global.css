@@ -1395,36 +1395,35 @@ label.debug-toggle input {
     pointer;
 }
 
-/* ── Turn Status Bar (fixed top overlay) ─────────────────────────────── */
+/* ── Turn Status Bar (centered fixed tab) ────────────────────────────── */
 .turn-status-bar {
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 200;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.45rem 1.25rem;
-  min-height: 2.75rem;
-  background: rgba(20, 36, 28, 0.94);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(232, 220, 196, 0.1);
-  font-size: 0.9rem;
+  gap: 1.25rem;
+  padding: 0.5rem 2rem 0.6rem;
+  background: rgba(20, 36, 28, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(232, 220, 196, 0.12);
+  border-top: none;
+  border-radius: 0 0 1.25rem 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .turn-status-bar.mine {
-  background: linear-gradient(
-    90deg,
-    rgba(212, 161, 90, 0.22) 0%,
-    rgba(20, 36, 28, 0.94) 65%
-  );
-  border-bottom-color: rgba(212, 161, 90, 0.28);
+  background: rgba(30, 48, 28, 0.97);
+  border-color: rgba(212, 161, 90, 0.35);
+  box-shadow: 0 4px 24px rgba(212, 161, 90, 0.18);
 }
 
 .turn-status-bar__player {
-  flex: 1;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
 }
 
@@ -1432,14 +1431,21 @@ label.debug-toggle input {
   color: var(--amber-bright);
 }
 
+.turn-status-bar__sep {
+  width: 1px;
+  height: 1.1em;
+  background: rgba(232, 220, 196, 0.2);
+  flex-shrink: 0;
+}
+
 .turn-status-bar__round {
   color: var(--text-muted);
-  font-size: 0.82rem;
+  font-size: 0.85rem;
 }
 
 .turn-status-bar__timer {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
   min-width: 3.5ch;
   text-align: right;
   color: var(--text-muted);
@@ -1447,11 +1453,6 @@ label.debug-toggle input {
 
 .turn-status-bar__timer.urgent {
   color: var(--danger);
-}
-
-/* push content down when the bar is mounted */
-body:has(.turn-status-bar) .main {
-  padding-top: 2.75rem;
 }
 
 /* ── Score Countdown ──────────────────────────────────────────────────── */
