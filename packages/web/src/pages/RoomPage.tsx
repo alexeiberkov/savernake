@@ -4,8 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   legalCells,
   openWaterFoods,
-  remainingRoundsFromForests,
-  remainingRoundsFromPathDeck,
   type AdvisorSlot,
   type Food,
   type Rotation,
@@ -17,7 +15,6 @@ import { useAssetPreloader } from "../hooks/useAssetPreloader";
 import { AssetLoadingBar } from "../components/AssetLoadingBar";
 import { ForestGrid } from "../components/ForestGrid";
 import { MarketRow } from "../components/MarketRow";
-import { PathDeckStack } from "../components/PathDeckStack";
 import { RoosterMark } from "../components/RoosterMark";
 import { ScoreReveal } from "../components/ScoreReveal";
 import { AnimatedForestGrid } from "../components/AnimatedForestGrid";
@@ -563,21 +560,6 @@ export function RoomPage() {
                   </motion.p>
                 </AnimatePresence>
               ) : null}
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "0.5rem" }}>
-                <PathDeckStack
-                  pathRemaining={match.deckSizes.pathDeck}
-                  roundsLeft={remainingRoundsFromForests(match.players)}
-                  pathRoundsLeft={remainingRoundsFromPathDeck(
-                    match.deckSizes.pathDeck,
-                  )}
-                  labels={{
-                    pathDeck: t("pathDeck"),
-                    pathCardsLeft: t("pathCardsLeft"),
-                    roundsLeft: t("roundsLeft"),
-                    pathRoundsLeft: t("pathRoundsLeft"),
-                  }}
-                />
-              </div>
               <h2>{t("market")}</h2>
               <MarketRow
                 market={match.market}
