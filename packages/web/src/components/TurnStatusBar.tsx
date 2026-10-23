@@ -47,11 +47,15 @@ export function TurnStatusBar({
       <span className="turn-status-bar__round">
         {t("round")} {round} {t("of")} {FOREST_TARGET_CARDS}
       </span>
-      {left != null && (
+      {timerSeconds > 0 && (
         <>
           <span className="turn-status-bar__sep" aria-hidden />
-          <span className={`turn-status-bar__timer${left <= 10 ? " urgent" : ""}`}>
-            {left}s
+          <span
+            className={`turn-status-bar__timer${
+              left != null && left <= 10 ? " urgent" : ""
+            }${left == null ? " dimmed" : ""}`}
+          >
+            {left != null ? `${left}s` : `${timerSeconds}s`}
           </span>
         </>
       )}

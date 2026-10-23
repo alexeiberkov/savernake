@@ -1493,6 +1493,11 @@ label.debug-toggle input {
   color: var(--danger);
 }
 
+.turn-status-bar__timer.dimmed {
+  opacity: 0.4;
+  font-weight: 400;
+}
+
 /* ── Score Countdown ──────────────────────────────────────────────────── */
 .score-countdown {
   display: flex;
