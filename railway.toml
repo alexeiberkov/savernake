@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install --frozen-lockfile && pnpm build"
+buildCommand = "pnpm install --frozen-lockfile && pnpm --filter @savernake/shared build && pnpm --filter @savernake/server build"
 
 [deploy]
 startCommand = "node packages/server/dist/index.js"
