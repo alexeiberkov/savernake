@@ -1,5 +1,5 @@
 /** Turn timer: seconds. 0 = off; otherwise clamped to [MIN, MAX]. Default 60. */
-export const TURN_TIMER_DEFAULT_SECONDS = 60;
+export const TURN_TIMER_DEFAULT_SECONDS = 300;
 export const TURN_TIMER_MIN_SECONDS = 30;
 export const TURN_TIMER_MAX_SECONDS = 300;
 
