@@ -8,7 +8,6 @@ import {
   type PlacedCard,
 } from "@savernake/shared";
 import { ForestGrid } from "./ForestGrid";
-import { AnimalBreakdownRow } from "./AnimalBreakdownRow";
 import { useLocale } from "../i18n/LocaleContext";
 import { animalMetaBySlug } from "../i18n/animal-meta";
 
@@ -215,13 +214,6 @@ export function AnimatedForestGrid({
         highlightedInstanceIds={isDone || !currentStep ? undefined : currentStep.activeIds}
         scoringActive={!isDone && Boolean(currentStep?.dimActive)}
       />
-      {isDone && (
-        <div className="animal-breakdown-list">
-          {forest.filter((c) => c.kind === "animal").map((a) => (
-            <AnimalBreakdownRow key={a.instanceId} animal={a} forest={forest} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
