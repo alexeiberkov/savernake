@@ -68,7 +68,7 @@ export function TurnStatusBar({
       {roomCode && (
         <>
           <span className="turn-status-bar__sep" aria-hidden />
-          <span className="turn-status-bar__room">{roomCode}</span>
+          <span className="turn-status-bar__room">{t("table")} {roomCode}</span>
           {onShare && (
             <button
               type="button"
