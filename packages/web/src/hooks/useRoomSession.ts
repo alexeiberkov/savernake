@@ -121,6 +121,7 @@ export function useRoomSession(code: string | undefined) {
     snapshot,
     error,
     startGame,
+    kickPlayer,
     signalAssetsReady,
     setTurnTimer,
     sendIntent,
