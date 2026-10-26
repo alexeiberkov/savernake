@@ -153,6 +153,32 @@ io.on("connection", (socket) => {
   );
 
   socket.on(
+    "room:kick",
+    (
+      payload: { targetPlayerId: string },
+      ack?: (r: { ok: boolean; error?: string }) => void,
+    ) => {
+      const code = socket.data.roomCode as string | undefined;
+      const playerId = socket.data.playerId as string | undefined;
+      if (!code || !playerId) {
+        ack?.({ ok: false, error: "NOT_IN_ROOM" });
+        return;
+      }
+      const kickedSocketId = rooms.get(code)?.sessions.get(payload.targetPlayerId)?.socketId;
+      const result = rooms.kickPlayer(code, playerId, payload.targetPlayerId);
+      if (!result.ok) {
+        ack?.({ ok: false, error: result.error });
+        return;
+      }
+      if (kickedSocketId) {
+        io.to(kickedSocketId).emit("room:kicked", { playerId: payload.targetPlayerId });
+      }
+      io.to(code).emit("room:update", rooms.snapshot(result.room, null));
+      ack?.({ ok: true });
+    },
+  );
+
+  socket.on(
     "game:intent",
     (
       payload: unknown,

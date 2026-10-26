@@ -44,6 +44,17 @@ export function useRoomSession(code: string | undefined) {
       }));
     });
 
+    s.on("room:kicked", (payload: { playerId: string }) => {
+      setSnapshot((prev) => {
+        if (!prev) return prev;
+        if (prev.youPlayerId === payload.playerId) {
+          if (upper) localStorage.removeItem(`savernake.resume.${upper}`);
+          window.location.href = "/";
+        }
+        return prev;
+      });
+    });
+
     return () => {
       s.disconnect();
       setSocket(null);
@@ -55,6 +66,19 @@ export function useRoomSession(code: string | undefined) {
       if (!res.ok) setError(res.error ?? "START_FAILED");
     });
   }, [socket]);
+
+  const kickPlayer = useCallback(
+    (targetPlayerId: string) => {
+      socket?.emit(
+        "room:kick",
+        { targetPlayerId },
+        (res: { ok: boolean; error?: string }) => {
+          if (!res.ok) setError(res.error ?? "KICK_FAILED");
+        },
+      );
+    },
+    [socket],
+  );
 
   const signalAssetsReady = useCallback(() => {
     socket?.emit("player:assetsReady", {}, () => {});

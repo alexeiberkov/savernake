@@ -161,6 +161,29 @@ export class RoomManager {
     };
   }
 
+  kickPlayer(
+    code: string,
+    hostPlayerId: string,
+    targetPlayerId: string,
+  ): { ok: true; room: Room } | { ok: false; error: string } {
+    const room = this.rooms.get(code.toUpperCase());
+    if (!room) return { ok: false, error: "ROOM_NOT_FOUND" };
+    if (room.hostId !== hostPlayerId) return { ok: false, error: "NOT_HOST" };
+    if (room.match.phase !== "lobby") return { ok: false, error: "GAME_STARTED" };
+    if (targetPlayerId === hostPlayerId) return { ok: false, error: "CANNOT_KICK_SELF" };
+
+    const target = room.sessions.get(targetPlayerId);
+    if (!target) return { ok: false, error: "PLAYER_NOT_FOUND" };
+
+    room.resumeIndex.delete(target.resumeToken);
+    room.sessions.delete(targetPlayerId);
+
+    const remaining = room.match.players.filter((p) => p.id !== targetPlayerId);
+    room.match.players = remaining.map((p, i) => ({ ...p, seat: i }));
+
+    return { ok: true, room };
+  }
+
   resume(
     code: string,
     resumeToken: string,
